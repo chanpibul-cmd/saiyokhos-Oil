@@ -87,15 +87,17 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <h3 class="text-lg font-bold text-gray-800 mb-4">ค่าใช้จ่ายแยกตามประเภทการใช้</h3>
-                    <canvas id="typeBarChart" height="250"></canvas>
+                    <div class="relative h-72 w-full">
+                        <canvas id="typeBarChart"></canvas>
+                    </div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <h3 class="text-lg font-bold text-gray-800 mb-4">สัดส่วนปริมาณน้ำมัน (ลิตร)</h3>
-                    <div class="flex justify-center">
-                        <canvas id="fuelDoughnutChart" height="250" style="max-height: 250px;"></canvas>
+                    <div class="relative h-72 w-full flex justify-center">
+                        <canvas id="fuelDoughnutChart"></canvas>
                     </div>
                 </div>
             </div>
