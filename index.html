@@ -12,7 +12,6 @@
         body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
         .loader { border-top-color: #10B981; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* ซ่อน Scrollbar แต่ยังเลื่อนได้ */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -40,13 +39,17 @@
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50">
         
-        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-10 z-10 flex-shrink-0">
+        <header class="h-auto md:h-16 bg-white shadow-sm flex flex-col md:flex-row items-center justify-between px-6 py-4 md:py-0 z-10 flex-shrink-0 gap-4">
             <h1 id="pageTitle" class="text-xl font-bold text-gray-800">แดชบอร์ดสรุปการใช้น้ำมัน</h1>
-            <div class="flex space-x-3">
-                <select id="monthFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block p-2 outline-none">
-                    <option value="all">ทุกเดือน</option>
+            <div class="flex flex-wrap items-center gap-2">
+                <select id="monthStartFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none">
+                    <option value="all">ตั้งแต่เดือน</option>
                 </select>
-                <select id="yearFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block p-2 outline-none">
+                <span class="text-gray-500 text-sm">ถึง</span>
+                <select id="monthEndFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none">
+                    <option value="all">ถึงเดือน</option>
+                </select>
+                <select id="yearFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none">
                     <option value="all">ทุกปีงบประมาณ</option>
                 </select>
             </div>
@@ -62,11 +65,11 @@
             <div id="view-dashboard" class="hidden space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-green-500">
-                        <p class="text-sm text-gray-500 mb-1">ยอดเงินรวมทั้งหมด (คอลัมน์ I)</p>
+                        <p class="text-sm text-gray-500 mb-1">ยอดเงินรวมทั้งหมด</p>
                         <h3 class="text-2xl font-bold text-gray-800" id="kpiTotalCost">0 ฿</h3>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-blue-500">
-                        <p class="text-sm text-gray-500 mb-1">ปริมาณน้ำมันรวม (คอลัมน์ G)</p>
+                        <p class="text-sm text-gray-500 mb-1">ปริมาณน้ำมันรวม</p>
                         <h3 class="text-2xl font-bold text-gray-800" id="kpiTotalLiters">0 ลิตร</h3>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-purple-500">
@@ -89,17 +92,28 @@
                         <div class="relative h-72 w-full flex justify-center"><canvas id="fuelDoughnutChart"></canvas></div>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">เปรียบเทียบค่าใช้จ่ายรายปีงบประมาณ</h3>
+                        <div class="relative h-72 w-full"><canvas id="yearBarChart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">ค่าใช้จ่ายแยกประเภทการใช้ เทียบปีงบประมาณ</h3>
+                        <div class="relative h-72 w-full"><canvas id="typeYearGroupChart"></canvas></div>
+                    </div>
+                </div>
             </div>
 
             <div id="view-vehicle" class="hidden space-y-6">
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col md:flex-row items-center gap-4">
                     <label class="font-bold text-gray-700">เลือกรถ / ครุภัณฑ์:</label>
-                    <select id="vehicleSelect" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block p-2 w-64 outline-none"></select>
+                    <select id="vehicleSelect" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block p-2 w-full md:w-64 outline-none"></select>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <p class="text-sm text-gray-500">ค่าใช้จ่ายรวมของคันนี้</p>
+                        <p class="text-sm text-gray-500">ค่าใช้จ่ายรวม</p>
                         <h3 class="text-2xl font-bold text-green-600" id="vehTotalCost">0 ฿</h3>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
@@ -107,45 +121,65 @@
                         <h3 class="text-2xl font-bold text-blue-600" id="vehTotalLiters">0 ลิตร</h3>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <p class="text-sm text-gray-500">จำนวนครั้งเข้าปั๊ม</p>
+                        <p class="text-sm text-gray-500">จำนวนครั้ง</p>
                         <h3 class="text-2xl font-bold text-purple-600" id="vehTotalTx">0 ครั้ง</h3>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <h3 class="text-lg font-bold text-gray-800 mb-4">ประวัติการใช้จ่ายรายเดือนของคันนี้</h3>
-                    <div class="relative h-72 w-full"><canvas id="vehicleLineChart"></canvas></div>
+                    <div class="relative h-72 w-full"><canvas id="vehicleHistoryChart"></canvas></div>
                 </div>
             </div>
 
             <div id="view-database" class="hidden h-full flex flex-col">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
-                    <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-gray-800">ตารางข้อมูลดิบ (Data Explorer)</h3>
-                        <div class="relative w-64">
+                    
+                    <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-bold text-gray-800">ตารางข้อมูลดิบ</h3>
+                            <select id="pageSize" class="bg-white border border-gray-300 text-gray-900 text-sm rounded p-1 outline-none">
+                                <option value="15">15 แถว</option>
+                                <option value="25">25 แถว</option>
+                                <option value="50">50 แถว</option>
+                                <option value="100">100 แถว</option>
+                                <option value="all">ทั้งหมด</option>
+                            </select>
+                        </div>
+                        <div class="relative w-full md:w-64">
                             <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                             <input type="text" id="searchInput" placeholder="ค้นหาทะเบียน, ผู้จัดซื้อ..." class="w-full bg-white border border-gray-300 text-sm rounded-lg pl-10 p-2 outline-none focus:border-green-500">
                         </div>
                     </div>
-                    <div class="overflow-auto flex-1">
+
+                    <div class="overflow-auto flex-1 relative">
                         <table class="w-full text-sm text-left text-gray-500 whitespace-nowrap">
-                            <thead class="text-xs text-gray-700 uppercase bg-gray-200 sticky top-0 z-10">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-200 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th class="px-4 py-3">วันที่</th>
                                     <th class="px-4 py-3">เลขที่ใบเสร็จ</th>
-                                    <th class="px-4 py-3">ทะเบียนรถ/ครุภัณฑ์ (D)</th>
-                                    <th class="px-4 py-3">ผู้จัดซื้อ (E)</th>
-                                    <th class="px-4 py-3">ประเภทน้ำมัน (F)</th>
-                                    <th class="px-4 py-3 text-right">ปริมาณลิตร (G)</th>
-                                    <th class="px-4 py-3 text-right">วงเงิน (H)</th>
-                                    <th class="px-4 py-3 text-right text-green-600">วงเงินสะสม (I)</th>
-                                    <th class="px-4 py-3">หมวดหมู่ (N)</th>
+                                    <th class="px-4 py-3">ทะเบียนรถ/ครุภัณฑ์</th>
+                                    <th class="px-4 py-3">ผู้จัดซื้อ</th>
+                                    <th class="px-4 py-3">ประเภทน้ำมัน</th>
+                                    <th class="px-4 py-3 text-right">ปริมาณลิตร</th>
+                                    <th class="px-4 py-3 text-right">วงเงิน</th>
+                                    <th class="px-4 py-3 text-right text-green-600">วงเงินสะสม</th>
+                                    <th class="px-4 py-3">หมวดหมู่</th>
                                 </tr>
                             </thead>
-                            <tbody id="fullTableBody" class="divide-y divide-gray-100">
+                            <tbody id="fullTableBody" class="divide-y divide-gray-100 bg-white">
                                 </tbody>
                         </table>
                     </div>
+
+                    <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-sm">
+                        <span id="pageInfoText" class="text-gray-500">กำลังโหลด...</span>
+                        <div class="flex space-x-2">
+                            <button onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50" id="btnPrev">ก่อนหน้า</button>
+                            <button onclick="changePage(1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50" id="btnNext">ถัดไป</button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -153,30 +187,37 @@
     </main>
 
     <script>
-        // 🔴 วาง URL ของ Google Apps Script ของคุณที่นี่ 🔴
+        // API URL ใหม่
         const API_URL = 'https://script.google.com/macros/s/AKfycbxg8BZAno0XaeCtogJ3IUAm0f5nXAwMOeOieZWBAJlHJRyXqX4dbUXY54GIMBgS22TO-A/exec'; 
         
         let globalData = [];
         let filteredData = [];
         let currentTab = 'dashboard';
+        let currentPage = 1;
         
         // Chart Instances
-        let barChartInstance = null;
-        let doughnutChartInstance = null;
-        let lineChartInstance = null;
+        let charts = {
+            typeBar: null,
+            fuelDoughnut: null,
+            yearBar: null,
+            typeYearGroup: null,
+            vehicleHistory: null
+        };
 
         // ชื่อคอลัมน์อิงจากข้อมูล
         const COL_DATE = 'วัน/เดือน/ปี';
         const COL_VEHICLE = 'ประเภทของครุภัณฑ์ หรือสิ่งอื่นใดซึ่งใช้น้ำมันเชื้อเพลิงและหมายเลขทะเบียนหรือรหัสครุภัณฑ์';
         const COL_BUYER = 'ผู้จัดซื้อน้ำมันเชื้อเพลิง';
         const COL_FUEL_TYPE = 'ประเภทน้ำมัน';
-        const COL_LITER = 'ปริมาณ (ลิตร)'; // G
-        const COL_COST = 'วงเงิน (บาท)'; // H
-        const COL_CUM_COST = 'วงเงินสะสม (บาท)'; // I
-        const COL_YEAR = 'ปีงบประมาณ'; // M
-        const COL_YM = 'ปี-เดือน'; // L
-        const COL_CATEGORY = 'ประเภทการใช้'; // N
+        const COL_LITER = 'ปริมาณ (ลิตร)'; 
+        const COL_COST = 'วงเงิน (บาท)'; 
+        const COL_CUM_COST = 'วงเงินสะสม (บาท)'; 
+        const COL_YEAR = 'ปีงบประมาณ'; 
+        const COL_YM = 'ปี-เดือน'; 
+        const COL_CATEGORY = 'ประเภทการใช้'; 
         const COL_RECEIPT = 'ใบสั่งซื้อ/ใบเสร็จรับเงิน/ใบกำกับภาษีอย่างใดอย่างหนึ่ง';
+
+        const colorPalette = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#14B8A6', '#F43F5E'];
 
         async function init() {
             try {
@@ -193,13 +234,15 @@
                 document.getElementById('loading').style.display = 'none';
                 switchTab('dashboard');
 
-                // Event Listeners สำหรับตัวกรองด้านบน
+                // Event Listeners ตัวกรอง
                 document.getElementById('yearFilter').addEventListener('change', applyGlobalFilters);
-                document.getElementById('monthFilter').addEventListener('change', applyGlobalFilters);
-                // Event Listener สำหรับหน้ารถ
+                document.getElementById('monthStartFilter').addEventListener('change', applyGlobalFilters);
+                document.getElementById('monthEndFilter').addEventListener('change', applyGlobalFilters);
+                
+                // Event Listeners หน้าอื่นๆ
                 document.getElementById('vehicleSelect').addEventListener('change', renderVehicleView);
-                // Event Listener สำหรับหน้าค้นหาตาราง
-                document.getElementById('searchInput').addEventListener('keyup', (e) => renderDatabase(e.target.value));
+                document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; renderDatabase(); });
+                document.getElementById('pageSize').addEventListener('change', () => { currentPage = 1; renderDatabase(); });
 
             } catch (error) {
                 console.error(error);
@@ -208,43 +251,58 @@
         }
 
         function setupDropdowns() {
-            // ตั้งค่า Dropdown ปีงบประมาณ
+            // ปีงบประมาณ
             const years = [...new Set(globalData.map(item => item[COL_YEAR]).filter(Boolean))].sort((a,b)=>b-a);
             const ySelect = document.getElementById('yearFilter');
             years.forEach(y => ySelect.add(new Option(`ปีงบประมาณ ${y}`, y)));
 
-            // ตั้งค่า Dropdown เดือน
-            const months = [...new Set(globalData.map(item => item[COL_YM]).filter(Boolean))].sort().reverse();
-            const mSelect = document.getElementById('monthFilter');
-            months.forEach(m => mSelect.add(new Option(m, m)));
-
-            // ตั้งค่า Dropdown รถยนต์ (สำหรับหน้า 2)
+            // เดือน (จัดเรียงจากเก่าไปใหม่สำหรับ Start และใหม่ไปเก่าสำหรับ End เพื่อความง่าย)
+            const months = [...new Set(globalData.map(item => item[COL_YM]).filter(Boolean))].sort();
+            const startM = document.getElementById('monthStartFilter');
+            const endM = document.getElementById('monthEndFilter');
+            
+            months.forEach(m => {
+                startM.add(new Option(m, m));
+                endM.add(new Option(m, m));
+            });
+            
+            // รถยนต์
             const vehicles = [...new Set(globalData.map(item => item[COL_VEHICLE]).filter(Boolean))].sort();
             const vSelect = document.getElementById('vehicleSelect');
             vehicles.forEach(v => vSelect.add(new Option(v, v)));
         }
 
-        // กรองข้อมูลหลักตาม ปี/เดือน ที่เลือกด้านบน
         function applyGlobalFilters() {
             const yVal = document.getElementById('yearFilter').value;
-            const mVal = document.getElementById('monthFilter').value;
+            const mStart = document.getElementById('monthStartFilter').value;
+            const mEnd = document.getElementById('monthEndFilter').value;
 
             filteredData = globalData.filter(item => {
                 let matchY = yVal === 'all' || item[COL_YEAR] == yVal;
-                let matchM = mVal === 'all' || item[COL_YM] == mVal;
+                let matchM = true;
+                const itemM = item[COL_YM];
+
+                if (mStart !== 'all' && mEnd !== 'all') {
+                    // ถ้าเลือกทั้งคู่ ต้องอยู่ระหว่างช่วง
+                    matchM = itemM >= mStart && itemM <= mEnd;
+                } else if (mStart !== 'all') {
+                    matchM = itemM >= mStart;
+                } else if (mEnd !== 'all') {
+                    matchM = itemM <= mEnd;
+                }
+
                 return matchY && matchM;
             });
 
-            // อัปเดตหน้าจอที่กำลังเปิดอยู่
+            currentPage = 1; // Reset หน้าตารางเสมอเมื่อมีการกรองใหม่
+
             if(currentTab === 'dashboard') renderDashboard();
             if(currentTab === 'vehicle') renderVehicleView();
-            if(currentTab === 'database') renderDatabase(document.getElementById('searchInput').value);
+            if(currentTab === 'database') renderDatabase();
         }
 
-        // ================= ควบคุมเมนู (Tab Switching) =================
         function switchTab(tabId) {
             currentTab = tabId;
-            // ซ่อนทุกหน้า
             ['dashboard', 'vehicle', 'database'].forEach(id => {
                 document.getElementById(`view-${id}`).style.display = 'none';
                 let btn = document.getElementById(`nav-${id}`);
@@ -252,13 +310,11 @@
                 btn.classList.add('text-gray-400');
             });
 
-            // แสดงหน้าที่เลือก
             document.getElementById(`view-${tabId}`).style.display = 'block';
             let activeBtn = document.getElementById(`nav-${tabId}`);
             activeBtn.classList.remove('text-gray-400');
             activeBtn.classList.add('bg-gray-800', 'text-green-400');
 
-            // อัปเดตเนื้อหา
             if(tabId === 'dashboard') {
                 document.getElementById('pageTitle').innerText = "ภาพรวมการใช้น้ำมันเชื้อเพลิง";
                 renderDashboard();
@@ -271,9 +327,7 @@
             }
         }
 
-        // ================= VIEW 1: RENDER DASHBOARD =================
         function renderDashboard() {
-            // ตามคำสั่ง: ยอดเงินรวม ใช้ข้อมูลจาก I (วงเงินสะสม), ปริมาณลิตรใช้ G
             const totalCost = filteredData.reduce((sum, item) => sum + (Number(item[COL_CUM_COST]) || 0), 0);
             const totalLiters = filteredData.reduce((sum, item) => sum + (Number(item[COL_LITER]) || 0), 0);
             const txCount = filteredData.length;
@@ -284,47 +338,84 @@
             document.getElementById('kpiTotalTx').innerText = txCount.toLocaleString('th-TH') + ' ครั้ง';
             document.getElementById('kpiAvgCost').innerText = avgCost.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ฿';
 
-            // เตรียมข้อมูลกราฟแท่ง (ค่าใช้จ่ายตามหมวดหมู่) -> แกน Y ใช้วงเงินสะสม (I) ตามโจทย์
+            // Data for charts
             const typeSummary = {};
             const fuelSummary = {};
+            const yearSummary = {};
             
             filteredData.forEach(item => {
                 let cat = item[COL_CATEGORY] || 'ไม่ระบุ';
-                typeSummary[cat] = (typeSummary[cat] || 0) + (Number(item[COL_CUM_COST]) || 0);
-
                 let fuel = item[COL_FUEL_TYPE] || 'ไม่ระบุ';
-                fuelSummary[fuel] = (fuelSummary[fuel] || 0) + (Number(item[COL_LITER]) || 0);
+                let year = item[COL_YEAR] || 'ไม่ระบุ';
+                let cost = Number(item[COL_CUM_COST]) || 0;
+                let liter = Number(item[COL_LITER]) || 0;
+
+                typeSummary[cat] = (typeSummary[cat] || 0) + cost;
+                fuelSummary[fuel] = (fuelSummary[fuel] || 0) + liter;
+                yearSummary[year] = (yearSummary[year] || 0) + cost;
             });
 
-            // วาด Bar Chart
-            if(barChartInstance) barChartInstance.destroy();
-            barChartInstance = new Chart(document.getElementById('typeBarChart'), {
+            // 1. Bar Chart (Type)
+            if(charts.typeBar) charts.typeBar.destroy();
+            charts.typeBar = new Chart(document.getElementById('typeBarChart'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(typeSummary),
-                    datasets: [{ label: 'ค่าใช้จ่าย (คอลัมน์ I)', data: Object.values(typeSummary), backgroundColor: '#10B981', borderRadius: 4 }]
+                    datasets: [{ label: 'ค่าใช้จ่าย', data: Object.values(typeSummary), backgroundColor: colorPalette[0], borderRadius: 4 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // วาด Doughnut Chart
-            if(doughnutChartInstance) doughnutChartInstance.destroy();
-            doughnutChartInstance = new Chart(document.getElementById('fuelDoughnutChart'), {
+            // 2. Doughnut Chart (Fuel)
+            if(charts.fuelDoughnut) charts.fuelDoughnut.destroy();
+            charts.fuelDoughnut = new Chart(document.getElementById('fuelDoughnutChart'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(fuelSummary),
-                    datasets: [{ data: Object.values(fuelSummary), backgroundColor: ['#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'] }]
+                    datasets: [{ data: Object.values(fuelSummary), backgroundColor: [colorPalette[1], colorPalette[2], colorPalette[3]] }]
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
+
+            // 3. Bar Chart (Year Comparison)
+            if(charts.yearBar) charts.yearBar.destroy();
+            charts.yearBar = new Chart(document.getElementById('yearBarChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(yearSummary).sort(),
+                    datasets: [{ label: 'ค่าใช้จ่ายรวมต่อปี (บาท)', data: Object.keys(yearSummary).sort().map(y => yearSummary[y]), backgroundColor: colorPalette[4], borderRadius: 4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 4. Grouped Bar Chart (Type vs Year)
+            const allCategories = [...new Set(filteredData.map(i => i[COL_CATEGORY] || 'ไม่ระบุ'))];
+            const allYears = [...new Set(filteredData.map(i => i[COL_YEAR] || 'ไม่ระบุ'))].sort();
+            
+            const groupDatasets = allCategories.map((cat, index) => {
+                return {
+                    label: cat,
+                    backgroundColor: colorPalette[index % colorPalette.length],
+                    data: allYears.map(y => {
+                        return filteredData
+                            .filter(i => (i[COL_YEAR] || 'ไม่ระบุ') == y && (i[COL_CATEGORY] || 'ไม่ระบุ') == cat)
+                            .reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0);
+                    })
+                };
+            });
+
+            if(charts.typeYearGroup) charts.typeYearGroup.destroy();
+            charts.typeYearGroup = new Chart(document.getElementById('typeYearGroupChart'), {
+                type: 'bar',
+                data: { labels: allYears, datasets: groupDatasets },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { stacked: false } } }
+            });
         }
 
-        // ================= VIEW 2: RENDER VEHICLE =================
         function renderVehicleView() {
             const vVal = document.getElementById('vehicleSelect').value;
             const vData = filteredData.filter(item => item[COL_VEHICLE] === vVal);
 
-            // คำนวณ KPI รายคัน
             const vCost = vData.reduce((sum, item) => sum + (Number(item[COL_CUM_COST]) || 0), 0);
             const vLiters = vData.reduce((sum, item) => sum + (Number(item[COL_LITER]) || 0), 0);
 
@@ -332,51 +423,76 @@
             document.getElementById('vehTotalLiters').innerText = vLiters.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ลิตร';
             document.getElementById('vehTotalTx').innerText = vData.length.toLocaleString('th-TH') + ' ครั้ง';
 
-            // เตรียมข้อมูลกราฟเส้น (แนวโน้มการใช้น้ำมันรายเดือน)
             const historyMap = {};
             vData.forEach(item => {
                 let m = item[COL_YM] || 'Unknown';
                 historyMap[m] = (historyMap[m] || 0) + (Number(item[COL_CUM_COST]) || 0);
             });
 
-            // จัดเรียงเดือน
             const labels = Object.keys(historyMap).sort();
             const dataPts = labels.map(l => historyMap[l]);
 
-            if(lineChartInstance) lineChartInstance.destroy();
-            lineChartInstance = new Chart(document.getElementById('vehicleLineChart'), {
-                type: 'line',
+            // เปลี่ยนจาก 'line' เป็น 'bar' ตามโจทย์
+            if(charts.vehicleHistory) charts.vehicleHistory.destroy();
+            charts.vehicleHistory = new Chart(document.getElementById('vehicleHistoryChart'), {
+                type: 'bar', // แก้เป็น bar chart
                 data: {
                     labels: labels,
-                    datasets: [{ label: 'ค่าใช้จ่ายรายเดือน (บาท)', data: dataPts, borderColor: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.2)', fill: true, tension: 0.3 }]
+                    datasets: [{ label: 'ค่าใช้จ่ายรายเดือน (บาท)', data: dataPts, backgroundColor: '#3B82F6', borderRadius: 4 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
 
-        // ================= VIEW 3: RENDER DATABASE =================
-        function renderDatabase(searchQuery = '') {
+        function renderDatabase() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
             const tbody = document.getElementById('fullTableBody');
             tbody.innerHTML = '';
             
-            // ค้นหาข้อความ
+            // Search Filter
             let dData = filteredData;
             if(searchQuery.trim() !== '') {
-                const q = searchQuery.toLowerCase();
                 dData = filteredData.filter(item => 
-                    (item[COL_VEHICLE] || '').toLowerCase().includes(q) ||
-                    (item[COL_BUYER] || '').toLowerCase().includes(q) ||
-                    (item[COL_RECEIPT] || '').toLowerCase().includes(q)
+                    (item[COL_VEHICLE] || '').toLowerCase().includes(searchQuery) ||
+                    (item[COL_BUYER] || '').toLowerCase().includes(searchQuery) ||
+                    (item[COL_RECEIPT] || '').toLowerCase().includes(searchQuery)
                 );
             }
 
-            dData.forEach(item => {
+            // Pagination Logic
+            const pageSizeSelect = document.getElementById('pageSize').value;
+            let displayData = dData;
+            let totalPages = 1;
+
+            if (pageSizeSelect !== 'all') {
+                const limit = parseInt(pageSizeSelect);
+                totalPages = Math.ceil(dData.length / limit) || 1;
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                const startIdx = (currentPage - 1) * limit;
+                displayData = dData.slice(startIdx, startIdx + limit);
+            }
+
+            // Update UI Pagination Info
+            document.getElementById('pageInfoText').innerText = `แสดงรายการที่ ${displayData.length > 0 ? ((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + 1 : 0} ถึง ${((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + displayData.length} จากทั้งหมด ${dData.length} รายการ (หน้า ${currentPage} / ${totalPages})`;
+            
+            document.getElementById('btnPrev').disabled = currentPage === 1;
+            document.getElementById('btnNext').disabled = currentPage === totalPages || pageSizeSelect === 'all';
+
+            // Render Rows
+            if(displayData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
+                return;
+            }
+
+            displayData.forEach(item => {
                 let costI = Number(item[COL_CUM_COST]) || 0;
                 let costH = Number(item[COL_COST]) || 0;
                 let liter = Number(item[COL_LITER]) || 0;
 
                 let tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-100 border-b';
+                tr.className = 'hover:bg-gray-50 border-b';
                 tr.innerHTML = `
                     <td class="px-4 py-3">${item[COL_DATE] || '-'}</td>
                     <td class="px-4 py-3 text-gray-500">${item[COL_RECEIPT] || '-'}</td>
@@ -392,7 +508,12 @@
             });
         }
 
-        // เริ่มทำงาน
+        // สำหรับปุ่มเปลี่ยนหน้า
+        function changePage(delta) {
+            currentPage += delta;
+            renderDatabase();
+        }
+
         window.onload = init;
     </script>
 </body>
