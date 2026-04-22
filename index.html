@@ -77,14 +77,14 @@
                         <h3 class="text-2xl font-bold text-gray-800" id="kpiTotalTx">0 ครั้ง</h3>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-orange-500">
-                        <p class="text-sm text-gray-500 mb-1">เฉลี่ยต่อครั้ง</p>
-                        <h3 class="text-2xl font-bold text-gray-800" id="kpiAvgCost">0 ฿</h3>
+                        <p class="text-sm text-gray-500 mb-1">เฉลี่ยต่อครั้ง (ลิตร)</p>
+                        <h3 class="text-2xl font-bold text-gray-800" id="kpiAvgLiter">0 ลิตร</h3>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">ค่าใช้จ่ายแยกตามประเภทการใช้</h3>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">ปริมาณน้ำมันแยกตามประเภทการใช้ (ลิตร)</h3>
                         <div class="relative h-72 w-full"><canvas id="typeBarChart"></canvas></div>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
@@ -95,11 +95,11 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">เปรียบเทียบค่าใช้จ่ายรายปีงบประมาณ</h3>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">เปรียบเทียบปริมาณน้ำมันรายปีงบประมาณ (ลิตร)</h3>
                         <div class="relative h-72 w-full"><canvas id="yearBarChart"></canvas></div>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">ค่าใช้จ่ายแยกประเภทการใช้ เทียบปีงบประมาณ</h3>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">ปริมาณน้ำมันแยกประเภทการใช้ เทียบปีงบประมาณ</h3>
                         <div class="relative h-72 w-full"><canvas id="typeYearGroupChart"></canvas></div>
                     </div>
                 </div>
@@ -127,7 +127,7 @@
                 </div>
 
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">ประวัติการใช้จ่ายรายเดือนของคันนี้</h3>
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">ประวัติการเติมน้ำมันรายเดือน (ลิตร)</h3>
                     <div class="relative h-72 w-full"><canvas id="vehicleHistoryChart"></canvas></div>
                 </div>
             </div>
@@ -187,7 +187,6 @@
     </main>
 
     <script>
-        // API URL ใหม่
         const API_URL = 'https://script.google.com/macros/s/AKfycbxg8BZAno0XaeCtogJ3IUAm0f5nXAwMOeOieZWBAJlHJRyXqX4dbUXY54GIMBgS22TO-A/exec'; 
         
         let globalData = [];
@@ -195,16 +194,8 @@
         let currentTab = 'dashboard';
         let currentPage = 1;
         
-        // Chart Instances
-        let charts = {
-            typeBar: null,
-            fuelDoughnut: null,
-            yearBar: null,
-            typeYearGroup: null,
-            vehicleHistory: null
-        };
+        let charts = { typeBar: null, fuelDoughnut: null, yearBar: null, typeYearGroup: null, vehicleHistory: null };
 
-        // ชื่อคอลัมน์อิงจากข้อมูล
         const COL_DATE = 'วัน/เดือน/ปี';
         const COL_VEHICLE = 'ประเภทของครุภัณฑ์ หรือสิ่งอื่นใดซึ่งใช้น้ำมันเชื้อเพลิงและหมายเลขทะเบียนหรือรหัสครุภัณฑ์';
         const COL_BUYER = 'ผู้จัดซื้อน้ำมันเชื้อเพลิง';
@@ -224,9 +215,7 @@
                 const response = await fetch(API_URL);
                 globalData = await response.json();
                 
-                if(globalData.error) {
-                    alert("Error: " + globalData.error); return;
-                }
+                if(globalData.error) { alert("Error: " + globalData.error); return; }
 
                 setupDropdowns();
                 applyGlobalFilters();
@@ -234,12 +223,9 @@
                 document.getElementById('loading').style.display = 'none';
                 switchTab('dashboard');
 
-                // Event Listeners ตัวกรอง
                 document.getElementById('yearFilter').addEventListener('change', applyGlobalFilters);
                 document.getElementById('monthStartFilter').addEventListener('change', applyGlobalFilters);
                 document.getElementById('monthEndFilter').addEventListener('change', applyGlobalFilters);
-                
-                // Event Listeners หน้าอื่นๆ
                 document.getElementById('vehicleSelect').addEventListener('change', renderVehicleView);
                 document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; renderDatabase(); });
                 document.getElementById('pageSize').addEventListener('change', () => { currentPage = 1; renderDatabase(); });
@@ -251,22 +237,18 @@
         }
 
         function setupDropdowns() {
-            // ปีงบประมาณ
             const years = [...new Set(globalData.map(item => item[COL_YEAR]).filter(Boolean))].sort((a,b)=>b-a);
             const ySelect = document.getElementById('yearFilter');
             years.forEach(y => ySelect.add(new Option(`ปีงบประมาณ ${y}`, y)));
 
-            // เดือน (จัดเรียงจากเก่าไปใหม่สำหรับ Start และใหม่ไปเก่าสำหรับ End เพื่อความง่าย)
             const months = [...new Set(globalData.map(item => item[COL_YM]).filter(Boolean))].sort();
             const startM = document.getElementById('monthStartFilter');
             const endM = document.getElementById('monthEndFilter');
-            
             months.forEach(m => {
                 startM.add(new Option(m, m));
                 endM.add(new Option(m, m));
             });
             
-            // รถยนต์
             const vehicles = [...new Set(globalData.map(item => item[COL_VEHICLE]).filter(Boolean))].sort();
             const vSelect = document.getElementById('vehicleSelect');
             vehicles.forEach(v => vSelect.add(new Option(v, v)));
@@ -282,20 +264,14 @@
                 let matchM = true;
                 const itemM = item[COL_YM];
 
-                if (mStart !== 'all' && mEnd !== 'all') {
-                    // ถ้าเลือกทั้งคู่ ต้องอยู่ระหว่างช่วง
-                    matchM = itemM >= mStart && itemM <= mEnd;
-                } else if (mStart !== 'all') {
-                    matchM = itemM >= mStart;
-                } else if (mEnd !== 'all') {
-                    matchM = itemM <= mEnd;
-                }
+                if (mStart !== 'all' && mEnd !== 'all') { matchM = itemM >= mStart && itemM <= mEnd; } 
+                else if (mStart !== 'all') { matchM = itemM >= mStart; } 
+                else if (mEnd !== 'all') { matchM = itemM <= mEnd; }
 
                 return matchY && matchM;
             });
 
-            currentPage = 1; // Reset หน้าตารางเสมอเมื่อมีการกรองใหม่
-
+            currentPage = 1;
             if(currentTab === 'dashboard') renderDashboard();
             if(currentTab === 'vehicle') renderVehicleView();
             if(currentTab === 'database') renderDatabase();
@@ -327,18 +303,39 @@
             }
         }
 
+        // ฟังก์ชันสร้าง Tooltip ที่โชว์ทั้งลิตรและบาท
+        function getTooltipOptions() {
+            return {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let liter = context.raw || 0;
+                                let cost = context.dataset.costs ? context.dataset.costs[context.dataIndex] : 0;
+                                let prefix = context.dataset.label ? context.dataset.label + ': ' : '';
+                                if(context.chart.config.type === 'doughnut') prefix = '';
+                                return `${prefix}${liter.toLocaleString('th-TH', {minimumFractionDigits: 2})} ลิตร (${cost.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿)`;
+                            }
+                        }
+                    }
+                },
+                responsive: true, 
+                maintainAspectRatio: false
+            };
+        }
+
         function renderDashboard() {
             const totalCost = filteredData.reduce((sum, item) => sum + (Number(item[COL_CUM_COST]) || 0), 0);
             const totalLiters = filteredData.reduce((sum, item) => sum + (Number(item[COL_LITER]) || 0), 0);
             const txCount = filteredData.length;
-            const avgCost = txCount > 0 ? totalCost / txCount : 0;
+            const avgLiter = txCount > 0 ? totalLiters / txCount : 0; // เปลี่ยนจากเฉลี่ยบาทเป็นเฉลี่ยลิตร
 
             document.getElementById('kpiTotalCost').innerText = totalCost.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ฿';
             document.getElementById('kpiTotalLiters').innerText = totalLiters.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ลิตร';
             document.getElementById('kpiTotalTx').innerText = txCount.toLocaleString('th-TH') + ' ครั้ง';
-            document.getElementById('kpiAvgCost').innerText = avgCost.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ฿';
+            document.getElementById('kpiAvgLiter').innerText = avgLiter.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ลิตร';
 
-            // Data for charts
+            // เตรียมข้อมูลโดยเก็บทั้ง Liter และ Cost
             const typeSummary = {};
             const fuelSummary = {};
             const yearSummary = {};
@@ -350,57 +347,80 @@
                 let cost = Number(item[COL_CUM_COST]) || 0;
                 let liter = Number(item[COL_LITER]) || 0;
 
-                typeSummary[cat] = (typeSummary[cat] || 0) + cost;
-                fuelSummary[fuel] = (fuelSummary[fuel] || 0) + liter;
-                yearSummary[year] = (yearSummary[year] || 0) + cost;
+                if(!typeSummary[cat]) typeSummary[cat] = { liter: 0, cost: 0 };
+                typeSummary[cat].liter += liter; typeSummary[cat].cost += cost;
+
+                if(!fuelSummary[fuel]) fuelSummary[fuel] = { liter: 0, cost: 0 };
+                fuelSummary[fuel].liter += liter; fuelSummary[fuel].cost += cost;
+
+                if(!yearSummary[year]) yearSummary[year] = { liter: 0, cost: 0 };
+                yearSummary[year].liter += liter; yearSummary[year].cost += cost;
             });
 
-            // 1. Bar Chart (Type)
+            // 1. Bar Chart (Type) -> แกน Y เป็น ลิตร
             if(charts.typeBar) charts.typeBar.destroy();
             charts.typeBar = new Chart(document.getElementById('typeBarChart'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(typeSummary),
-                    datasets: [{ label: 'ค่าใช้จ่าย', data: Object.values(typeSummary), backgroundColor: colorPalette[0], borderRadius: 4 }]
+                    datasets: [{ 
+                        label: 'ปริมาณน้ำมัน', 
+                        data: Object.keys(typeSummary).map(k => typeSummary[k].liter), 
+                        costs: Object.keys(typeSummary).map(k => typeSummary[k].cost), 
+                        backgroundColor: colorPalette[0], borderRadius: 4 
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: getTooltipOptions()
             });
 
-            // 2. Doughnut Chart (Fuel)
+            // 2. Doughnut Chart (Fuel) -> แกนหลักเป็น ลิตร
             if(charts.fuelDoughnut) charts.fuelDoughnut.destroy();
             charts.fuelDoughnut = new Chart(document.getElementById('fuelDoughnutChart'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(fuelSummary),
-                    datasets: [{ data: Object.values(fuelSummary), backgroundColor: [colorPalette[1], colorPalette[2], colorPalette[3]] }]
+                    datasets: [{ 
+                        data: Object.keys(fuelSummary).map(k => fuelSummary[k].liter), 
+                        costs: Object.keys(fuelSummary).map(k => fuelSummary[k].cost),
+                        backgroundColor: [colorPalette[1], colorPalette[2], colorPalette[3]] 
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: getTooltipOptions()
             });
 
-            // 3. Bar Chart (Year Comparison)
+            // 3. Bar Chart (Year Comparison) -> แกน Y เป็น ลิตร
             if(charts.yearBar) charts.yearBar.destroy();
             charts.yearBar = new Chart(document.getElementById('yearBarChart'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(yearSummary).sort(),
-                    datasets: [{ label: 'ค่าใช้จ่ายรวมต่อปี (บาท)', data: Object.keys(yearSummary).sort().map(y => yearSummary[y]), backgroundColor: colorPalette[4], borderRadius: 4 }]
+                    datasets: [{ 
+                        label: 'ปริมาณรวมต่อปี', 
+                        data: Object.keys(yearSummary).sort().map(y => yearSummary[y].liter), 
+                        costs: Object.keys(yearSummary).sort().map(y => yearSummary[y].cost),
+                        backgroundColor: colorPalette[4], borderRadius: 4 
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: getTooltipOptions()
             });
 
-            // 4. Grouped Bar Chart (Type vs Year)
+            // 4. Grouped Bar Chart (Type vs Year) -> แกน Y เป็น ลิตร
             const allCategories = [...new Set(filteredData.map(i => i[COL_CATEGORY] || 'ไม่ระบุ'))];
             const allYears = [...new Set(filteredData.map(i => i[COL_YEAR] || 'ไม่ระบุ'))].sort();
             
             const groupDatasets = allCategories.map((cat, index) => {
+                const catData = allYears.map(y => {
+                    let items = filteredData.filter(i => (i[COL_YEAR] || 'ไม่ระบุ') == y && (i[COL_CATEGORY] || 'ไม่ระบุ') == cat);
+                    return {
+                        liter: items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0),
+                        cost: items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0)
+                    };
+                });
                 return {
                     label: cat,
                     backgroundColor: colorPalette[index % colorPalette.length],
-                    data: allYears.map(y => {
-                        return filteredData
-                            .filter(i => (i[COL_YEAR] || 'ไม่ระบุ') == y && (i[COL_CATEGORY] || 'ไม่ระบุ') == cat)
-                            .reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0);
-                    })
+                    data: catData.map(d => d.liter),
+                    costs: catData.map(d => d.cost)
                 };
             });
 
@@ -408,7 +428,7 @@
             charts.typeYearGroup = new Chart(document.getElementById('typeYearGroupChart'), {
                 type: 'bar',
                 data: { labels: allYears, datasets: groupDatasets },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { stacked: false } } }
+                options: getTooltipOptions()
             });
         }
 
@@ -426,21 +446,28 @@
             const historyMap = {};
             vData.forEach(item => {
                 let m = item[COL_YM] || 'Unknown';
-                historyMap[m] = (historyMap[m] || 0) + (Number(item[COL_CUM_COST]) || 0);
+                if(!historyMap[m]) historyMap[m] = { liter: 0, cost: 0 };
+                historyMap[m].liter += (Number(item[COL_LITER]) || 0);
+                historyMap[m].cost += (Number(item[COL_CUM_COST]) || 0);
             });
 
             const labels = Object.keys(historyMap).sort();
-            const dataPts = labels.map(l => historyMap[l]);
+            const dLiters = labels.map(l => historyMap[l].liter);
+            const dCosts = labels.map(l => historyMap[l].cost);
 
-            // เปลี่ยนจาก 'line' เป็น 'bar' ตามโจทย์
             if(charts.vehicleHistory) charts.vehicleHistory.destroy();
             charts.vehicleHistory = new Chart(document.getElementById('vehicleHistoryChart'), {
-                type: 'bar', // แก้เป็น bar chart
+                type: 'bar', 
                 data: {
                     labels: labels,
-                    datasets: [{ label: 'ค่าใช้จ่ายรายเดือน (บาท)', data: dataPts, backgroundColor: '#3B82F6', borderRadius: 4 }]
+                    datasets: [{ 
+                        label: 'ปริมาณที่เติม', 
+                        data: dLiters, 
+                        costs: dCosts,
+                        backgroundColor: '#3B82F6', borderRadius: 4 
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: getTooltipOptions()
             });
         }
 
@@ -449,7 +476,6 @@
             const tbody = document.getElementById('fullTableBody');
             tbody.innerHTML = '';
             
-            // Search Filter
             let dData = filteredData;
             if(searchQuery.trim() !== '') {
                 dData = filteredData.filter(item => 
@@ -459,7 +485,6 @@
                 );
             }
 
-            // Pagination Logic
             const pageSizeSelect = document.getElementById('pageSize').value;
             let displayData = dData;
             let totalPages = 1;
@@ -474,13 +499,10 @@
                 displayData = dData.slice(startIdx, startIdx + limit);
             }
 
-            // Update UI Pagination Info
             document.getElementById('pageInfoText').innerText = `แสดงรายการที่ ${displayData.length > 0 ? ((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + 1 : 0} ถึง ${((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + displayData.length} จากทั้งหมด ${dData.length} รายการ (หน้า ${currentPage} / ${totalPages})`;
-            
             document.getElementById('btnPrev').disabled = currentPage === 1;
             document.getElementById('btnNext').disabled = currentPage === totalPages || pageSizeSelect === 'all';
 
-            // Render Rows
             if(displayData.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
                 return;
@@ -499,16 +521,15 @@
                     <td class="px-4 py-3 font-medium text-gray-900">${item[COL_VEHICLE] || '-'}</td>
                     <td class="px-4 py-3">${item[COL_BUYER] || '-'}</td>
                     <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${item[COL_FUEL_TYPE] || '-'}</span></td>
-                    <td class="px-4 py-3 text-right">${liter.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-right font-bold text-blue-600">${liter.toFixed(2)}</td>
                     <td class="px-4 py-3 text-right">${costH.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
-                    <td class="px-4 py-3 text-right font-bold text-green-600">${costI.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
+                    <td class="px-4 py-3 text-right text-green-600">${costI.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
                     <td class="px-4 py-3 text-gray-500">${item[COL_CATEGORY] || '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // สำหรับปุ่มเปลี่ยนหน้า
         function changePage(delta) {
             currentPage += delta;
             renderDatabase();
