@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการน้ำมัน รพ.ไทรโยค</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
+        .loader { border-top-color: #10B981; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-800 flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-gray-900 text-white flex flex-col hidden md:flex">
+        <div class="h-16 flex items-center px-6 border-b border-gray-800">
+            <i class="fas fa-hospital text-green-400 text-2xl mr-3"></i>
+            <span class="font-bold text-lg tracking-wider">รพ.ไทรโยค</span>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="#" class="flex items-center px-4 py-3 bg-gray-800 text-green-400 rounded-lg">
+                <i class="fas fa-chart-pie mr-3 w-5"></i> ภาพรวม (Dashboard)
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition">
+                <i class="fas fa-car mr-3 w-5"></i> ข้อมูลรายคัน (เร็วๆ นี้)
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-10 z-10">
+            <h1 class="text-xl font-bold text-gray-800">แดชบอร์ดสรุปการใช้น้ำมันเชื้อเพลิง</h1>
+            <div class="flex space-x-4">
+                <select id="yearFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block p-2">
+                    <option value="all">ทุกปีงบประมาณ</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="loading" class="flex-1 flex flex-col justify-center items-center">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+            <p class="text-gray-500 font-medium">กำลังโหลดข้อมูลจาก Google Sheets...</p>
+        </div>
+
+        <div id="dashboard" class="p-6 lg:p-10 hidden space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-green-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">ยอดเงินรวมทั้งหมด</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpiTotalCost">0 ฿</h3>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full"><i class="fas fa-money-bill-wave text-green-500 text-xl"></i></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-blue-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">ปริมาณน้ำมันรวม</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpiTotalLiters">0 ลิตร</h3>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full"><i class="fas fa-gas-pump text-blue-500 text-xl"></i></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-purple-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">จำนวนรายการเติม</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpiTotalTx">0 ครั้ง</h3>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full"><i class="fas fa-receipt text-purple-500 text-xl"></i></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-orange-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">เฉลี่ยต่อครั้ง</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="kpiAvgCost">0 ฿</h3>
+                        </div>
+                        <div class="bg-orange-100 p-3 rounded-full"><i class="fas fa-calculator text-orange-500 text-xl"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">ค่าใช้จ่ายแยกตามประเภทการใช้</h3>
+                    <canvas id="typeBarChart" height="250"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">สัดส่วนปริมาณน้ำมัน (ลิตร)</h3>
+                    <div class="flex justify-center">
+                        <canvas id="fuelDoughnutChart" height="250" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                    <h3 class="text-lg font-bold text-gray-800">รายการบันทึกล่าสุด</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3">วันที่</th>
+                                <th class="px-6 py-3">ทะเบียน/รหัส</th>
+                                <th class="px-6 py-3">ผู้จัดซื้อ</th>
+                                <th class="px-6 py-3">ประเภทน้ำมัน</th>
+                                <th class="px-6 py-3">จำนวน (ลิตร)</th>
+                                <th class="px-6 py-3">จำนวนเงิน (บาท)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- 🔴 ใส่ URL ของ Apps Script ตรงนี้ 🔴 ---
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxsTlVmTC-tUXy7Od30Uwjr6Hjzom-Uei9Cuh9-7H_fsxNkXN_fCQ9hLre0WD3BPTGtow/exec'; 
+        
+        let globalData = [];
+        let barChartInstance = null;
+        let doughnutChartInstance = null;
+
+        // ฟังก์ชันเริ่มการทำงาน
+        async function init() {
+            try {
+                const response = await fetch(API_URL);
+                globalData = await response.json();
+                
+                if(globalData.error) {
+                    alert("Error from Apps Script: " + globalData.error);
+                    return;
+                }
+
+                setupFilters();
+                updateDashboard('all');
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+
+                // เมื่อเปลี่ยนปีงบประมาณให้โหลดข้อมูลใหม่
+                document.getElementById('yearFilter').addEventListener('change', (e) => {
+                    updateDashboard(e.target.value);
+                });
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                document.getElementById('loading').innerHTML = '<p class="text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
+        }
+
+        // จัดการ Dropdown ปีงบประมาณ
+        function setupFilters() {
+            const years = [...new Set(globalData.map(item => item['ปีงบประมาณ']).filter(y => y))].sort((a,b)=>b-a);
+            const select = document.getElementById('yearFilter');
+            years.forEach(year => {
+                let option = document.createElement('option');
+                option.value = year;
+                option.text = `ปีงบประมาณ ${year}`;
+                select.appendChild(option);
+            });
+        }
+
+        // อัปเดตข้อมูลบนหน้าจอ
+        function updateDashboard(yearFilter) {
+            let data = globalData;
+            if(yearFilter !== 'all') {
+                data = globalData.filter(item => item['ปีงบประมาณ'] == yearFilter);
+            }
+
+            // คำนวณ KPI
+            const totalCost = data.reduce((sum, item) => sum + (Number(item['วงเงิน (บาท)']) || 0), 0);
+            const totalLiters = data.reduce((sum, item) => sum + (Number(item['ปริมาณ (ลิตร)']) || 0), 0);
+            const txCount = data.length;
+            const avgCost = txCount > 0 ? totalCost / txCount : 0;
+
+            document.getElementById('kpiTotalCost').innerText = totalCost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ฿';
+            document.getElementById('kpiTotalLiters').innerText = totalLiters.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ลิตร';
+            document.getElementById('kpiTotalTx').innerText = txCount.toLocaleString('th-TH') + ' ครั้ง';
+            document.getElementById('kpiAvgCost').innerText = avgCost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ฿';
+
+            // เตรียมข้อมูลกราฟแท่ง (ค่าใช้จ่ายตามประเภทการใช้)
+            const typeSummary = {};
+            data.forEach(item => {
+                let type = item['ประเภทการใช้'] || 'ไม่ระบุ';
+                typeSummary[type] = (typeSummary[type] || 0) + (Number(item['วงเงิน (บาท)']) || 0);
+            });
+
+            // เตรียมข้อมูลกราฟโดนัท (ปริมาณตามประเภทน้ำมัน)
+            const fuelSummary = {};
+            data.forEach(item => {
+                let fuel = item['ประเภทน้ำมัน'] || 'ไม่ระบุ';
+                fuelSummary[fuel] = (fuelSummary[fuel] || 0) + (Number(item['ปริมาณ (ลิตร)']) || 0);
+            });
+
+            renderCharts(typeSummary, fuelSummary);
+            renderTable(data);
+        }
+
+        function renderCharts(typeSummary, fuelSummary) {
+            // Bar Chart
+            const barCtx = document.getElementById('typeBarChart').getContext('2d');
+            if(barChartInstance) barChartInstance.destroy();
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(typeSummary),
+                    datasets: [{
+                        label: 'ค่าใช้จ่าย (บาท)',
+                        data: Object.values(typeSummary),
+                        backgroundColor: '#10B981',
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Doughnut Chart
+            const doughnutCtx = document.getElementById('fuelDoughnutChart').getContext('2d');
+            if(doughnutChartInstance) doughnutChartInstance.destroy();
+            doughnutChartInstance = new Chart(doughnutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(fuelSummary),
+                    datasets: [{
+                        data: Object.values(fuelSummary),
+                        backgroundColor: ['#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // ตารางข้อมูลล่าสุด (โชว์ 5 รายการสุดท้าย)
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            // เอาข้อมูลล่าสุดขึ้นก่อน
+            const recentData = [...data].reverse().slice(0, 5);
+            
+            recentData.forEach(item => {
+                let cost = Number(item['วงเงิน (บาท)']) || 0;
+                let liter = Number(item['ปริมาณ (ลิตร)']) || 0;
+                
+                let tr = document.createElement('tr');
+                tr.className = 'bg-white border-b hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="px-6 py-4">${item['วัน/เดือน/ปี'] || '-'}</td>
+                    <td class="px-6 py-4 font-medium text-gray-900">${item['ประเภทของครุภัณฑ์ หรือสิ่งอื่นใดซึ่งใช้น้ำมันเชื้อเพลิงและหมายเลขทะเบียนหรือรหัสครุภัณฑ์'] || '-'}</td>
+                    <td class="px-6 py-4">${item['ผู้จัดซื้อน้ำมันเชื้อเพลิง'] || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${item['ประเภทน้ำมัน'] || '-'}</span>
+                    </td>
+                    <td class="px-6 py-4">${liter.toFixed(2)}</td>
+                    <td class="px-6 py-4 font-bold text-green-600">${cost.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // เริ่มโหลดข้อมูล
+        init();
+    </script>
+</body>
+</html>
