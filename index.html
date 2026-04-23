@@ -10,10 +10,12 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.27.0/pivot.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.27.0/pivot.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
@@ -24,7 +26,7 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }
         
-        /* ตกแต่ง Pivot Table ให้เข้ากับหน้าเว็บ */
+        /* Pivot Table Styles */
         .pvtUi { width: 100%; font-family: 'Sarabun', sans-serif; }
         .pvtAxisContainer, .pvtVals { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
         .pvtTable { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -34,14 +36,19 @@
         .pvtFilterBox { z-index: 50 !important; }
     </style>
 </head>
-<body class="text-gray-800 flex h-screen overflow-hidden">
+<body class="text-gray-800 flex h-screen overflow-hidden relative">
 
-    <aside class="w-64 bg-gray-900 text-white flex flex-col hidden md:flex flex-shrink-0 transition-all duration-300">
-        <div class="h-16 flex items-center px-6 border-b border-gray-800">
-            <i class="fas fa-hospital text-green-400 text-2xl mr-3"></i>
-            <span class="font-bold text-lg tracking-wider">รพ.ไทรโยค</span>
+    <div id="sidebarOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 hidden md:hidden"></div>
+
+    <aside id="sidebar" class="w-64 bg-gray-900 text-white flex flex-col fixed md:relative h-full z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex-shrink-0">
+        <div class="h-16 flex items-center justify-between px-6 border-b border-gray-800">
+            <div class="flex items-center">
+                <i class="fas fa-hospital text-green-400 text-2xl mr-3"></i>
+                <span class="font-bold text-lg tracking-wider">รพ.ไทรโยค</span>
+            </div>
+            <button id="closeMenuBtn" class="md:hidden text-gray-400 hover:text-white text-xl outline-none"><i class="fas fa-times"></i></button>
         </div>
-        <nav class="flex-1 px-4 py-6 space-y-2">
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             <button onclick="switchTab('dash-year')" id="nav-dash-year" class="w-full flex items-center px-4 py-3 bg-gray-800 text-green-400 rounded-lg transition"><i class="fas fa-calendar-alt mr-3 w-5"></i> ภาพรวมรายปี</button>
             <button onclick="switchTab('dash-month')" id="nav-dash-month" class="w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition"><i class="fas fa-calendar-day mr-3 w-5"></i> ภาพรวมช่วงเดือน</button>
             <button onclick="switchTab('vehicle')" id="nav-vehicle" class="w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition"><i class="fas fa-car mr-3 w-5"></i> ข้อมูลรายคัน</button>
@@ -50,112 +57,121 @@
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50">
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50 relative w-full">
         
-        <header class="h-auto md:h-16 bg-white shadow-sm flex flex-col md:flex-row items-center justify-between px-6 py-4 md:py-0 z-10 flex-shrink-0 gap-4">
-            <h1 id="pageTitle" class="text-xl font-bold text-gray-800">แดชบอร์ดสรุปการใช้น้ำมัน</h1>
-            <div class="flex flex-wrap items-center gap-2">
-                <div id="monthFilterGroup" class="flex items-center gap-2">
-                    <select id="monthStartFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none"><option value="all">ตั้งแต่เดือน</option></select>
+        <div class="md:hidden bg-white shadow-sm h-14 flex items-center justify-between px-4 z-20 flex-shrink-0">
+            <div class="flex items-center text-gray-800 font-bold">
+                <i class="fas fa-gas-pump text-green-500 mr-2"></i> ระบบน้ำมัน
+            </div>
+            <button id="mobileMenuBtn" class="text-gray-600 focus:outline-none text-2xl p-1">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <header class="h-auto md:h-16 bg-white shadow-sm flex flex-col md:flex-row items-center justify-between px-4 lg:px-6 py-4 md:py-0 z-10 flex-shrink-0 gap-3 border-b md:border-b-0">
+            <h1 id="pageTitle" class="text-lg md:text-xl font-bold text-gray-800 hidden md:block">แดชบอร์ดสรุปการใช้น้ำมัน</h1>
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div id="monthFilterGroup" class="flex items-center gap-2 flex-wrap">
+                    <select id="monthStartFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none flex-1"><option value="all">ตั้งแต่เดือน</option></select>
                     <span class="text-gray-500 text-sm">ถึง</span>
-                    <select id="monthEndFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none"><option value="all">ถึงเดือน</option></select>
+                    <select id="monthEndFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none flex-1"><option value="all">ถึงเดือน</option></select>
                 </div>
-                <select id="yearFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none"><option value="all">ทุกปีงบประมาณ</option></select>
+                <select id="yearFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 p-2 outline-none flex-1 md:flex-none"><option value="all">ทุกปีงบประมาณ</option></select>
                 
-                <button onclick="resetFilters()" class="bg-red-50 text-red-600 border border-red-200 text-sm rounded-lg px-3 py-2 hover:bg-red-100 transition flex items-center">
-                    <i class="fas fa-undo-alt mr-1"></i> ล้างตัวกรอง
+                <button onclick="resetFilters()" class="bg-red-50 text-red-600 border border-red-200 text-sm rounded-lg px-3 py-2 hover:bg-red-100 transition flex items-center justify-center flex-1 md:flex-none">
+                    <i class="fas fa-undo-alt mr-1"></i> ล้างค่า
                 </button>
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-6 lg:p-10" id="contentArea">
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10" id="contentArea">
             <div id="loading" class="flex flex-col justify-center items-center h-full">
                 <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
                 <p class="text-gray-500 font-medium">กำลังโหลดข้อมูล...</p>
             </div>
 
             <div id="view-dash-year" class="hidden space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="kpi-year"></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" id="kpi-year"></div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col">
-                        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">ปริมาณน้ำมันรวมรายปี</h3><button onclick="exportTable('tb-year-1', 'ปริมาณรวมรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                        <div class="relative h-72 w-full mb-6"><canvas id="yearBarChart"></canvas></div>
-                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-year-1" class="w-full text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-4 py-2">ปีงบประมาณ</th><th class="px-4 py-2 text-right">ปริมาณ (ลิตร)</th><th class="px-4 py-2 text-right">จำนวนเงิน (บาท)</th></tr></thead><tbody id="tb-yearBar"></tbody></table></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col w-full overflow-hidden">
+                        <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">ปริมาณน้ำมันรวมรายปี</h3><button onclick="exportTable('tb-year-1', 'ปริมาณรวมรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                        <div class="relative h-64 md:h-72 w-full mb-4"><canvas id="yearBarChart"></canvas></div>
+                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-year-1" class="w-full text-xs md:text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-3 py-2">ปีงบประมาณ</th><th class="px-3 py-2 text-right">ปริมาณ (ลิตร)</th><th class="px-3 py-2 text-right">จำนวนเงิน (บาท)</th></tr></thead><tbody id="tb-yearBar"></tbody></table></div>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col">
-                        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">ปริมาณแยกประเภท เทียบรายปี</h3><button onclick="exportTable('tb-year-2', 'แยกประเภทเทียบรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                        <div class="relative h-72 w-full mb-6"><canvas id="typeYearGroupChart"></canvas></div>
-                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-year-2" class="w-full text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-4 py-2 bg-gray-50">ปีงบประมาณ</th><th class="px-4 py-2 bg-gray-50">ประเภทการใช้</th><th class="px-4 py-2 text-right bg-gray-50">ปริมาณ (ลิตร)</th></tr></thead><tbody id="tb-typeYearGroup"></tbody></table></div>
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col w-full overflow-hidden">
+                        <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">ปริมาณแยกประเภท เทียบรายปี</h3><button onclick="exportTable('tb-year-2', 'แยกประเภทเทียบรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                        <div class="relative h-64 md:h-72 w-full mb-4"><canvas id="typeYearGroupChart"></canvas></div>
+                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-year-2" class="w-full text-xs md:text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-3 py-2 bg-gray-50">ปีงบประมาณ</th><th class="px-3 py-2 bg-gray-50">ประเภทการใช้</th><th class="px-3 py-2 text-right bg-gray-50">ปริมาณ (ลิตร)</th></tr></thead><tbody id="tb-typeYearGroup"></tbody></table></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">เปรียบเทียบรายเดือน แยกประเภท (เทียบรายปี)</h3><button onclick="exportTable('tb-year-3', 'เปรียบเทียบรายเดือนรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                    <div class="relative h-96 w-full mb-6"><canvas id="monthlyCompareChart"></canvas></div>
-                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-year-3" class="w-full text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-4 py-2 bg-gray-50">เดือน</th><th class="px-4 py-2 bg-gray-50">ปีงบประมาณ</th><th class="px-4 py-2 bg-gray-50">ประเภทการใช้</th><th class="px-4 py-2 text-right bg-gray-50">ปริมาณ (ลิตร)</th><th class="px-4 py-2 text-right bg-gray-50">วงเงิน (บาท)</th></tr></thead><tbody id="tb-monthlyCompare"></tbody></table></div>
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 w-full overflow-hidden">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">เปรียบเทียบรายเดือน แยกประเภท (เทียบรายปี)</h3><button onclick="exportTable('tb-year-3', 'เปรียบเทียบรายเดือนรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                    <div class="relative h-80 md:h-96 w-full mb-4"><canvas id="monthlyCompareChart"></canvas></div>
+                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-year-3" class="w-full text-xs md:text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-3 py-2 bg-gray-50">เดือน</th><th class="px-3 py-2 bg-gray-50">ปีงบประมาณ</th><th class="px-3 py-2 bg-gray-50">ประเภทการใช้</th><th class="px-3 py-2 text-right bg-gray-50">ปริมาณ (ลิตร)</th><th class="px-3 py-2 text-right bg-gray-50">วงเงิน (บาท)</th></tr></thead><tbody id="tb-monthlyCompare"></tbody></table></div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">ปริมาณน้ำมันของรถทุกคัน (รายปี)</h3><button onclick="exportTable('tb-year-4', 'ปริมาณรวมทุกคันรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                    <div class="relative h-[400px] w-full mb-6"><canvas id="allVehiclesYearChart"></canvas></div>
-                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-year-4" class="w-full text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-4 py-2 bg-gray-50">ทะเบียน / ครุภัณฑ์</th><th class="px-4 py-2 text-right bg-gray-50">ปริมาณรวม (ลิตร)</th><th class="px-4 py-2 text-right bg-gray-50">จำนวนเงินรวม (บาท)</th></tr></thead><tbody id="tb-allVehiclesYear"></tbody></table></div>
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 w-full overflow-hidden">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">ปริมาณน้ำมันของรถทุกคัน (รายปี)</h3><button onclick="exportTable('tb-year-4', 'ปริมาณรวมทุกคันรายปี')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                    <div class="relative h-80 md:h-[400px] w-full mb-4"><canvas id="allVehiclesYearChart"></canvas></div>
+                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-year-4" class="w-full text-xs md:text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-3 py-2 bg-gray-50">ทะเบียน / ครุภัณฑ์</th><th class="px-3 py-2 text-right bg-gray-50">ปริมาณรวม (ลิตร)</th><th class="px-3 py-2 text-right bg-gray-50">จำนวนเงินรวม (บาท)</th></tr></thead><tbody id="tb-allVehiclesYear"></tbody></table></div>
                 </div>
             </div>
 
             <div id="view-dash-month" class="hidden space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="kpi-month"></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" id="kpi-month"></div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col">
-                        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">ปริมาณแยกประเภทการใช้</h3><button onclick="exportTable('tb-month-1', 'แยกประเภทการใช้ช่วงเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                        <div class="relative h-72 w-full mb-6"><canvas id="typeMonthBarChart"></canvas></div>
-                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-month-1" class="w-full text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-4 py-2">ประเภทการใช้</th><th class="px-4 py-2 text-right">ปริมาณ (ลิตร)</th><th class="px-4 py-2 text-right">จำนวนเงิน (บาท)</th></tr></thead><tbody id="tb-typeMonthBar"></tbody></table></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col w-full overflow-hidden">
+                        <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">ปริมาณแยกประเภทการใช้</h3><button onclick="exportTable('tb-month-1', 'แยกประเภทการใช้ช่วงเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                        <div class="relative h-64 md:h-72 w-full mb-4"><canvas id="typeMonthBarChart"></canvas></div>
+                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-month-1" class="w-full text-xs md:text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-3 py-2">ประเภทการใช้</th><th class="px-3 py-2 text-right">ปริมาณ (ลิตร)</th><th class="px-3 py-2 text-right">จำนวนเงิน (บาท)</th></tr></thead><tbody id="tb-typeMonthBar"></tbody></table></div>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col">
-                        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">สัดส่วนประเภทน้ำมัน</h3><button onclick="exportTable('tb-month-2', 'สัดส่วนน้ำมันช่วงเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                        <div class="relative h-72 w-full flex justify-center mb-6"><canvas id="fuelMonthDoughnutChart"></canvas></div>
-                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-month-2" class="w-full text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-4 py-2">ประเภทน้ำมัน</th><th class="px-4 py-2 text-right">ปริมาณ (ลิตร)</th><th class="px-4 py-2 text-right">จำนวนเงิน (บาท)</th></tr></thead><tbody id="tb-fuelMonthDoughnut"></tbody></table></div>
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col w-full overflow-hidden">
+                        <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">สัดส่วนประเภทน้ำมัน</h3><button onclick="exportTable('tb-month-2', 'สัดส่วนน้ำมันช่วงเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                        <div class="relative h-64 md:h-72 w-full flex justify-center mb-4"><canvas id="fuelMonthDoughnutChart"></canvas></div>
+                        <div class="overflow-x-auto mt-auto border rounded-lg max-h-48"><table id="tb-month-2" class="w-full text-xs md:text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0"><tr><th class="px-3 py-2">ประเภทน้ำมัน</th><th class="px-3 py-2 text-right">ปริมาณ (ลิตร)</th><th class="px-3 py-2 text-right">จำนวนเงิน (บาท)</th></tr></thead><tbody id="tb-fuelMonthDoughnut"></tbody></table></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">แนวโน้มรายเดือน แยกตามประเภท</h3><button onclick="exportTable('tb-month-3', 'แนวโน้มรายเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                    <div class="relative h-80 w-full mb-6"><canvas id="monthlyTypeTrendChart"></canvas></div>
-                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-month-3" class="w-full text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-4 py-2 bg-gray-50">ปี-เดือน</th><th class="px-4 py-2 bg-gray-50">ประเภทการใช้</th><th class="px-4 py-2 text-right bg-gray-50">ปริมาณ (ลิตร)</th><th class="px-4 py-2 text-right bg-gray-50">วงเงิน (บาท)</th></tr></thead><tbody id="tb-monthlyTypeTrend"></tbody></table></div>
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 w-full overflow-hidden">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">แนวโน้มรายเดือน แยกตามประเภท</h3><button onclick="exportTable('tb-month-3', 'แนวโน้มรายเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                    <div class="relative h-72 md:h-80 w-full mb-4"><canvas id="monthlyTypeTrendChart"></canvas></div>
+                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-month-3" class="w-full text-xs md:text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-3 py-2 bg-gray-50">ปี-เดือน</th><th class="px-3 py-2 bg-gray-50">ประเภทการใช้</th><th class="px-3 py-2 text-right bg-gray-50">ปริมาณ (ลิตร)</th><th class="px-3 py-2 text-right bg-gray-50">วงเงิน (บาท)</th></tr></thead><tbody id="tb-monthlyTypeTrend"></tbody></table></div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">ปริมาณของรถทุกคัน (ช่วงเดือนที่เลือก)</h3><button onclick="exportTable('tb-month-4', 'ปริมาณทุกคันช่วงเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 hover:bg-green-100"><i class="fas fa-file-excel"></i> Excel</button></div>
-                    <div class="relative h-[400px] w-full mb-6"><canvas id="allVehiclesMonthChart"></canvas></div>
-                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-month-4" class="w-full text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-4 py-2 bg-gray-50">ทะเบียน / ครุภัณฑ์</th><th class="px-4 py-2 text-right bg-gray-50">ปริมาณรวม (ลิตร)</th><th class="px-4 py-2 text-right bg-gray-50">จำนวนเงินรวม (บาท)</th></tr></thead><tbody id="tb-allVehiclesMonth"></tbody></table></div>
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 w-full overflow-hidden">
+                    <div class="flex justify-between items-center mb-4"><h3 class="text-md md:text-lg font-bold text-gray-800">ปริมาณของรถทุกคัน (ช่วงเดือนที่เลือก)</h3><button onclick="exportTable('tb-month-4', 'ปริมาณทุกคันช่วงเดือน')" class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200"><i class="fas fa-file-excel"></i> Excel</button></div>
+                    <div class="relative h-80 md:h-[400px] w-full mb-4"><canvas id="allVehiclesMonthChart"></canvas></div>
+                    <div class="overflow-x-auto border rounded-lg max-h-64"><table id="tb-month-4" class="w-full text-xs md:text-sm text-left text-gray-500 relative"><thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10"><tr><th class="px-3 py-2 bg-gray-50">ทะเบียน / ครุภัณฑ์</th><th class="px-3 py-2 text-right bg-gray-50">ปริมาณรวม (ลิตร)</th><th class="px-3 py-2 text-right bg-gray-50">จำนวนเงินรวม (บาท)</th></tr></thead><tbody id="tb-allVehiclesMonth"></tbody></table></div>
                 </div>
             </div>
 
             <div id="view-vehicle" class="hidden space-y-6">
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col md:flex-row items-center gap-4">
-                    <label class="font-bold text-gray-700">เลือกรถ / ครุภัณฑ์:</label>
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col md:flex-row items-center gap-3 md:gap-4">
+                    <label class="font-bold text-gray-700 whitespace-nowrap">เลือกรถ / ครุภัณฑ์:</label>
                     <select id="vehicleSelect" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block p-2 w-full md:w-64 outline-none"></select>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100"><p class="text-sm text-gray-500">ค่าใช้จ่ายรวม</p><h3 class="text-2xl font-bold text-green-600" id="vehTotalCost">0 ฿</h3></div>
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100"><p class="text-sm text-gray-500">ปริมาณน้ำมันที่เติม</p><h3 class="text-2xl font-bold text-blue-600" id="vehTotalLiters">0 ลิตร</h3></div>
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100"><p class="text-sm text-gray-500">จำนวนครั้ง</p><h3 class="text-2xl font-bold text-purple-600" id="vehTotalTx">0 ครั้ง</h3></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100"><p class="text-sm text-gray-500">ค่าใช้จ่ายรวม</p><h3 class="text-xl md:text-2xl font-bold text-green-600" id="vehTotalCost">0 ฿</h3></div>
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100"><p class="text-sm text-gray-500">ปริมาณน้ำมันที่เติม</p><h3 class="text-xl md:text-2xl font-bold text-blue-600" id="vehTotalLiters">0 ลิตร</h3></div>
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100"><p class="text-sm text-gray-500">จำนวนครั้ง</p><h3 class="text-xl md:text-2xl font-bold text-purple-600" id="vehTotalTx">0 ครั้ง</h3></div>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">ประวัติการเติมน้ำมันรายเดือนของคันนี้ (ลิตร)</h3>
-                    <div class="relative h-72 w-full"><canvas id="vehicleHistoryChart"></canvas></div>
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 w-full overflow-hidden">
+                    <h3 class="text-md md:text-lg font-bold text-gray-800 mb-4">ประวัติการเติมน้ำมันรายเดือนของคันนี้ (ลิตร)</h3>
+                    <div class="relative h-64 md:h-72 w-full"><canvas id="vehicleHistoryChart"></canvas></div>
                 </div>
                 
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
-                    <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-gray-800">รายละเอียดประวัติการเติมน้ำมัน (ล่าสุดอยู่บนสุด)</h3>
-                        <button onclick="exportTable('tb-vehicle-details', 'ประวัติรายคัน')" class="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition shadow-sm"><i class="fas fa-file-excel mr-1"></i> ส่งออก Excel</button>
+                    <div class="p-3 md:p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <h3 class="text-sm md:text-lg font-bold text-gray-800">ประวัติการเติม (ล่าสุดอยู่บนสุด)</h3>
+                        <button onclick="exportTable('tb-vehicle-details', 'ประวัติรายคัน')" class="text-xs md:text-sm bg-green-500 text-white px-2 py-1 md:px-3 md:py-1 rounded hover:bg-green-600 shadow-sm whitespace-nowrap"><i class="fas fa-file-excel mr-1"></i> Excel</button>
                     </div>
-                    <div class="overflow-auto max-h-[500px]">
-                        <table id="tb-vehicle-details" class="w-full text-sm text-left text-gray-500 whitespace-nowrap">
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table id="tb-vehicle-details" class="w-full text-xs md:text-sm text-left text-gray-500 whitespace-nowrap">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-200 sticky top-0 z-10 shadow-sm">
-                                <tr><th class="px-4 py-3">วันที่</th><th class="px-4 py-3">เลขที่ใบเสร็จ</th><th class="px-4 py-3">ผู้จัดซื้อ</th><th class="px-4 py-3">ประเภทน้ำมัน</th><th class="px-4 py-3 text-right">ปริมาณลิตร</th><th class="px-4 py-3 text-right">ราคา/ลิตร</th><th class="px-4 py-3 text-right text-green-600">ราคารวม</th><th class="px-4 py-3">หมวดหมู่</th></tr>
+                                <tr><th class="px-3 py-2">วันที่</th><th class="px-3 py-2">เลขที่ใบเสร็จ</th><th class="px-3 py-2">ผู้จัดซื้อ</th><th class="px-3 py-2">ประเภทน้ำมัน</th><th class="px-3 py-2 text-right">ปริมาณลิตร</th><th class="px-3 py-2 text-right">ราคา/ลิตร</th><th class="px-3 py-2 text-right text-green-600">ราคารวม</th><th class="px-3 py-2">หมวดหมู่</th></tr>
                             </thead>
                             <tbody id="tb-vehicleDetailsBody" class="divide-y divide-gray-100 bg-white"></tbody>
                         </table>
@@ -165,49 +181,49 @@
 
             <div id="view-database" class="hidden h-full flex flex-col">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
-                    <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-lg font-bold text-gray-800">ตารางข้อมูลดิบ</h3>
-                            <select id="pageSize" class="bg-white border border-gray-300 text-gray-900 text-sm rounded p-1 outline-none">
+                    <div class="p-3 md:p-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <h3 class="text-sm md:text-lg font-bold text-gray-800 whitespace-nowrap">ตารางข้อมูลดิบ</h3>
+                            <select id="pageSize" class="bg-white border border-gray-300 text-gray-900 text-xs md:text-sm rounded p-1 outline-none">
                                 <option value="15">15 แถว</option><option value="25">25 แถว</option><option value="50">50 แถว</option><option value="100">100 แถว</option><option value="all">ทั้งหมด</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="flex items-center gap-2 md:gap-3 w-full md:w-auto">
                             <div class="relative flex-1 md:w-64">
-                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                                <input type="text" id="searchInput" placeholder="ค้นหาทะเบียน, ผู้จัดซื้อ..." class="w-full bg-white border border-gray-300 text-sm rounded-lg pl-10 p-2 outline-none focus:border-green-500">
+                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                                <input type="text" id="searchInput" placeholder="ค้นหาทะเบียน, ผู้ซื้อ..." class="w-full bg-white border border-gray-300 text-xs md:text-sm rounded-lg pl-9 p-2 outline-none focus:border-green-500">
                             </div>
-                            <button onclick="exportTable('tb-full-database', 'ฐานข้อมูลทั้งหมด')" class="text-sm bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition shadow-sm whitespace-nowrap"><i class="fas fa-file-excel mr-1"></i> ส่งออก</button>
+                            <button onclick="exportTable('tb-full-database', 'ฐานข้อมูลทั้งหมด')" class="text-xs md:text-sm bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 shadow-sm whitespace-nowrap"><i class="fas fa-file-excel mr-1"></i> ส่งออก</button>
                         </div>
                     </div>
-                    <div class="overflow-auto flex-1 relative">
-                        <table id="tb-full-database" class="w-full text-sm text-left text-gray-500 whitespace-nowrap">
+                    <div class="overflow-x-auto flex-1 relative">
+                        <table id="tb-full-database" class="w-full text-xs md:text-sm text-left text-gray-500 whitespace-nowrap">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-200 sticky top-0 z-10 shadow-sm">
-                                <tr><th class="px-4 py-3">วันที่</th><th class="px-4 py-3">เลขที่ใบเสร็จ</th><th class="px-4 py-3">ทะเบียนรถ/ครุภัณฑ์</th><th class="px-4 py-3">ผู้จัดซื้อ</th><th class="px-4 py-3">ประเภทน้ำมัน</th><th class="px-4 py-3 text-right">ปริมาณลิตร</th><th class="px-4 py-3 text-right">ราคา/ลิตร</th><th class="px-4 py-3 text-right text-green-600">ราคา(บาท)</th><th class="px-4 py-3">หมวดหมู่</th></tr>
+                                <tr><th class="px-3 py-2">วันที่</th><th class="px-3 py-2">เลขที่ใบเสร็จ</th><th class="px-3 py-2">ทะเบียน/ครุภัณฑ์</th><th class="px-3 py-2">ผู้จัดซื้อ</th><th class="px-3 py-2">ประเภทน้ำมัน</th><th class="px-3 py-2 text-right">ปริมาณลิตร</th><th class="px-3 py-2 text-right">ราคา/ลิตร</th><th class="px-3 py-2 text-right text-green-600">ราคา(บาท)</th><th class="px-3 py-2">หมวดหมู่</th></tr>
                             </thead>
                             <tbody id="fullTableBody" class="divide-y divide-gray-100 bg-white"></tbody>
                         </table>
                     </div>
-                    <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-sm">
+                    <div class="p-3 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-xs md:text-sm">
                         <span id="pageInfoText" class="text-gray-500">กำลังโหลด...</span>
                         <div class="flex space-x-2">
-                            <button onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50" id="btnPrev">ก่อนหน้า</button>
-                            <button onclick="changePage(1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50" id="btnNext">ถัดไป</button>
+                            <button onclick="changePage(-1)" class="px-2 py-1 md:px-3 md:py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50" id="btnPrev">ก่อนหน้า</button>
+                            <button onclick="changePage(1)" class="px-2 py-1 md:px-3 md:py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50" id="btnNext">ถัดไป</button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="view-pivot" class="hidden h-full flex flex-col space-y-4">
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center">
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h3 class="text-xl font-bold text-gray-800">ตารางวิเคราะห์ Pivot (กำหนดเอง)</h3>
-                        <p class="text-sm text-gray-500 mt-1">ลากและวางกล่องสีเทาด้านล่าง ไปยังพื้นที่ แถว(ซ้าย) คอลัมน์(บน) เพื่อวิเคราะห์ข้อมูลตามต้องการ</p>
+                        <h3 class="text-lg md:text-xl font-bold text-gray-800">ตารางวิเคราะห์ Pivot (กำหนดเอง)</h3>
+                        <p class="text-xs md:text-sm text-gray-500 mt-1">ลากและวางกล่องสีเทา ไปยังพื้นที่ แถว(ซ้าย) คอลัมน์(บน) <span class="hidden md:inline">เพื่อวิเคราะห์ข้อมูล</span></p>
                     </div>
-                    <button onclick="exportPivotTable()" class="text-sm bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition shadow"><i class="fas fa-file-excel mr-2"></i> โหลดตารางนี้เป็น Excel</button>
+                    <button onclick="exportPivotTable()" class="text-xs md:text-sm bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 shadow whitespace-nowrap"><i class="fas fa-file-excel mr-1"></i> โหลดตารางนี้เป็น Excel</button>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 overflow-auto p-4 relative" id="pivotContainerWrapper">
-                    <div id="pivotContainer" class="w-full"></div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 overflow-auto p-2 md:p-4 relative" id="pivotContainerWrapper">
+                    <div id="pivotContainer" class="w-full text-xs md:text-sm"></div>
                 </div>
             </div>
 
@@ -215,11 +231,11 @@
     </main>
 
     <script>
+        // --- 🔴 อัปเดต API URL ใหม่แล้ว 🔴 ---
         const API_URL = 'https://script.google.com/macros/s/AKfycbxW585l72svfFmYBX9iYtpRUEv3botdgzyzGOV-75LZb59iHFbCskRgmF2EUkkjR0nbcw/exec'; 
         
         let globalData = []; let filteredDataYear = []; let filteredDataMonth = [];
         let currentTab = 'dash-year'; let currentPage = 1;
-        
         let charts = { yearBar: null, typeYearGroup: null, monthlyCompare: null, allVehiclesYear: null, typeMonthBar: null, fuelMonthDoughnut: null, monthlyTypeTrend: null, allVehiclesMonth: null, vehicleHistory: null };
 
         const COL_DATE = 'วัน/เดือน/ปี'; const COL_VEHICLE = 'ประเภทของครุภัณฑ์ หรือสิ่งอื่นใดซึ่งใช้น้ำมันเชื้อเพลิงและหมายเลขทะเบียนหรือรหัสครุภัณฑ์';
@@ -230,6 +246,21 @@
         const colorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#14B8A6', '#F43F5E', '#64748B'];
         const fiscalMonthKeys = ['10', '11', '12', '01', '02', '03', '04', '05', '06', '07', '08', '09'];
         const fiscalMonthNames = ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'];
+
+        // ====== ระบบ Mobile Sidebar Toggle ======
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const closeMenuBtn = document.getElementById('closeMenuBtn');
+
+        function toggleMenu() {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        }
+        mobileMenuBtn.addEventListener('click', toggleMenu);
+        closeMenuBtn.addEventListener('click', toggleMenu);
+        sidebarOverlay.addEventListener('click', toggleMenu);
+
 
         async function init() {
             try {
@@ -260,7 +291,6 @@
             vehicles.forEach(v => vSelect.add(new Option(v, v)));
         }
 
-        // ฟังก์ชันล้างตัวกรอง
         function resetFilters() {
             document.getElementById('monthStartFilter').value = 'all';
             document.getElementById('monthEndFilter').value = 'all';
@@ -292,11 +322,17 @@
             let activeBtn = document.getElementById(`nav-${tabId}`); activeBtn.classList.remove('text-gray-400'); activeBtn.classList.add('bg-gray-800', 'text-green-400');
 
             const monthGroup = document.getElementById('monthFilterGroup');
-            if(tabId === 'dash-year') { document.getElementById('pageTitle').innerText = "ภาพรวมเปรียบเทียบรายปี"; monthGroup.style.display = 'none'; } 
-            else if(tabId === 'dash-month') { document.getElementById('pageTitle').innerText = "ภาพรวมวิเคราะห์ตามช่วงเดือน"; monthGroup.style.display = 'flex'; } 
-            else if(tabId === 'vehicle') { document.getElementById('pageTitle').innerText = "รายงานแยกตามรายคัน/ครุภัณฑ์"; monthGroup.style.display = 'flex'; } 
+            if(tabId === 'dash-year') { document.getElementById('pageTitle').innerText = "ภาพรวมรายปี"; monthGroup.style.display = 'none'; } 
+            else if(tabId === 'dash-month') { document.getElementById('pageTitle').innerText = "ภาพรวมช่วงเดือน"; monthGroup.style.display = 'flex'; } 
+            else if(tabId === 'vehicle') { document.getElementById('pageTitle').innerText = "รายงานรายคัน"; monthGroup.style.display = 'flex'; } 
             else if(tabId === 'database') { document.getElementById('pageTitle').innerText = "ฐานข้อมูลทั้งหมด"; monthGroup.style.display = 'flex'; }
-            else if(tabId === 'pivot') { document.getElementById('pageTitle').innerText = "วิเคราะห์ข้อมูลอิสระ (Pivot)"; monthGroup.style.display = 'flex'; }
+            else if(tabId === 'pivot') { document.getElementById('pageTitle').innerText = "วิเคราะห์ Pivot"; monthGroup.style.display = 'flex'; }
+            
+            // ปิดเมนูบนมือถืออัตโนมัติเมื่อกดเปลี่ยนหน้า
+            if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                toggleMenu();
+            }
+
             refreshCurrentTab();
         }
 
@@ -320,65 +356,55 @@
             XLSX.writeFile(wb, "PivotTable_Export.xlsx");
         }
         
-        function getTooltipOptions() {
-            return { plugins: { tooltip: { callbacks: { label: function(context) { let liter = context.raw || 0; let cost = context.dataset.costs ? context.dataset.costs[context.dataIndex] : 0; let prefix = context.dataset.label ? context.dataset.label + ': ' : ''; if(context.chart.config.type === 'doughnut') prefix = ''; return `${prefix}${liter.toLocaleString('th-TH', {minimumFractionDigits: 2})} ลิตร (${cost.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿)`; } } } }, responsive: true, maintainAspectRatio: false };
-        }
+        function getTooltipOptions() { return { plugins: { tooltip: { callbacks: { label: function(context) { let liter = context.raw || 0; let cost = context.dataset.costs ? context.dataset.costs[context.dataIndex] : 0; let prefix = context.dataset.label ? context.dataset.label + ': ' : ''; if(context.chart.config.type === 'doughnut') prefix = ''; return `${prefix}${liter.toLocaleString('th-TH', {minimumFractionDigits: 2})} ลิตร (${cost.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿)`; } } } }, responsive: true, maintainAspectRatio: false }; }
         function generateKPICards(containerId, dataArray) {
             const totalCost = dataArray.reduce((sum, item) => sum + (Number(item[COL_CUM_COST]) || 0), 0); const totalLiters = dataArray.reduce((sum, item) => sum + (Number(item[COL_LITER]) || 0), 0); const txCount = dataArray.length; const avgLiter = txCount > 0 ? totalLiters / txCount : 0;
-            document.getElementById(containerId).innerHTML = `<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-green-500"><p class="text-sm text-gray-500 mb-1">ยอดเงินรวมทั้งหมด</p><h3 class="text-2xl font-bold text-gray-800">${totalCost.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</h3></div><div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-blue-500"><p class="text-sm text-gray-500 mb-1">ปริมาณน้ำมันรวม</p><h3 class="text-2xl font-bold text-gray-800">${totalLiters.toLocaleString('th-TH', {minimumFractionDigits: 2})} ลิตร</h3></div><div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-purple-500"><p class="text-sm text-gray-500 mb-1">จำนวนรายการเติม</p><h3 class="text-2xl font-bold text-gray-800">${txCount.toLocaleString('th-TH')} ครั้ง</h3></div><div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 border-l-4 border-l-orange-500"><p class="text-sm text-gray-500 mb-1">เฉลี่ยต่อครั้ง (ลิตร)</p><h3 class="text-2xl font-bold text-gray-800">${avgLiter.toLocaleString('th-TH', {minimumFractionDigits: 2})} ลิตร</h3></div>`;
+            document.getElementById(containerId).innerHTML = `<div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 border-l-4 border-l-green-500"><p class="text-xs md:text-sm text-gray-500 mb-1">ยอดเงินรวมทั้งหมด</p><h3 class="text-lg md:text-2xl font-bold text-gray-800">${totalCost.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</h3></div><div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 border-l-4 border-l-blue-500"><p class="text-xs md:text-sm text-gray-500 mb-1">ปริมาณน้ำมันรวม</p><h3 class="text-lg md:text-2xl font-bold text-gray-800">${totalLiters.toLocaleString('th-TH', {minimumFractionDigits: 2})} ลิตร</h3></div><div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 border-l-4 border-l-purple-500"><p class="text-xs md:text-sm text-gray-500 mb-1">จำนวนรายการ</p><h3 class="text-lg md:text-2xl font-bold text-gray-800">${txCount.toLocaleString('th-TH')} ครั้ง</h3></div><div class="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 border-l-4 border-l-orange-500"><p class="text-xs md:text-sm text-gray-500 mb-1">เฉลี่ยต่อครั้ง</p><h3 class="text-lg md:text-2xl font-bold text-gray-800">${avgLiter.toLocaleString('th-TH', {minimumFractionDigits: 2})} ลิตร</h3></div>`;
         }
 
-        // ================= เรนเดอร์หน้า: รายปี =================
+        // ================= เรนเดอร์หน้า =================
         function renderDashYear() {
             let data = filteredDataYear; generateKPICards('kpi-year', data);
             const allCategories = [...new Set(data.map(i => i[COL_CATEGORY] || 'ไม่ระบุ'))]; const allYears = [...new Set(data.map(i => i[COL_YEAR] || 'ไม่ระบุ'))].sort();
             const catColors = {}; allCategories.forEach((cat, idx) => { catColors[cat] = colorPalette[idx % colorPalette.length]; });
             const yearSummary = {}; const vehSummary = {};
-            data.forEach(item => {
-                let year = item[COL_YEAR] || 'ไม่ระบุ'; let v = item[COL_VEHICLE] || 'ไม่ระบุ';
-                if(!yearSummary[year]) yearSummary[year] = { liter: 0, cost: 0 }; yearSummary[year].liter += (Number(item[COL_LITER]) || 0); yearSummary[year].cost += (Number(item[COL_CUM_COST]) || 0);
-                if(!vehSummary[v]) vehSummary[v] = { liter: 0, cost: 0 }; vehSummary[v].liter += (Number(item[COL_LITER]) || 0); vehSummary[v].cost += (Number(item[COL_CUM_COST]) || 0);
-            });
+            data.forEach(item => { let year = item[COL_YEAR] || 'ไม่ระบุ'; let v = item[COL_VEHICLE] || 'ไม่ระบุ'; if(!yearSummary[year]) yearSummary[year] = { liter: 0, cost: 0 }; yearSummary[year].liter += (Number(item[COL_LITER]) || 0); yearSummary[year].cost += (Number(item[COL_CUM_COST]) || 0); if(!vehSummary[v]) vehSummary[v] = { liter: 0, cost: 0 }; vehSummary[v].liter += (Number(item[COL_LITER]) || 0); vehSummary[v].cost += (Number(item[COL_CUM_COST]) || 0); });
 
             const yearLabels = Object.keys(yearSummary).sort();
             if(charts.yearBar) charts.yearBar.destroy(); let opt1 = getTooltipOptions(); charts.yearBar = new Chart(document.getElementById('yearBarChart'), { type: 'bar', data: { labels: yearLabels, datasets: [{ label: 'ปริมาณรวมต่อปี', data: yearLabels.map(y => yearSummary[y].liter), costs: yearLabels.map(y => yearSummary[y].cost), backgroundColor: colorPalette[5], borderRadius: 4 }] }, options: opt1 });
-            document.getElementById('tb-yearBar').innerHTML = yearLabels.map(y => `<tr class="border-b"><td class="px-4 py-2">${y}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${yearSummary[y].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${yearSummary[y].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
+            document.getElementById('tb-yearBar').innerHTML = yearLabels.map(y => `<tr class="border-b"><td class="px-3 py-2">${y}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${yearSummary[y].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${yearSummary[y].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
 
             const groupDatasets = allCategories.map(cat => { const catData = yearLabels.map(y => { let items = data.filter(i => (i[COL_YEAR] || 'ไม่ระบุ') == y && (i[COL_CATEGORY] || 'ไม่ระบุ') == cat); return { liter: items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0), cost: items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0) }; }); return { label: cat, backgroundColor: catColors[cat], data: catData.map(d => d.liter), costs: catData.map(d => d.cost) }; });
             if(charts.typeYearGroup) charts.typeYearGroup.destroy(); let opt2 = getTooltipOptions(); charts.typeYearGroup = new Chart(document.getElementById('typeYearGroupChart'), { type: 'bar', data: { labels: yearLabels, datasets: groupDatasets }, options: opt2 });
-            let tbTypeYearHTML = ''; yearLabels.forEach(y => { allCategories.forEach(cat => { let items = data.filter(i => (i[COL_YEAR] || 'ไม่ระบุ') == y && (i[COL_CATEGORY] || 'ไม่ระบุ') == cat); let lSum = items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); if(lSum > 0) tbTypeYearHTML += `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${y}</td><td class="px-4 py-2">${cat}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${lSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`; });}); document.getElementById('tb-typeYearGroup').innerHTML = tbTypeYearHTML;
+            let tbTypeYearHTML = ''; yearLabels.forEach(y => { allCategories.forEach(cat => { let items = data.filter(i => (i[COL_YEAR] || 'ไม่ระบุ') == y && (i[COL_CATEGORY] || 'ไม่ระบุ') == cat); let lSum = items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); if(lSum > 0) tbTypeYearHTML += `<tr class="border-b hover:bg-gray-50"><td class="px-3 py-2">${y}</td><td class="px-3 py-2">${cat}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${lSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`; });}); document.getElementById('tb-typeYearGroup').innerHTML = tbTypeYearHTML;
 
             const stackGroupDatasets = []; let tbMonthlyCompareHTML = '';
             allYears.forEach(y => { allCategories.forEach(cat => { const dataPts = fiscalMonthKeys.map(mKey => { let items = data.filter(i => (i[COL_YEAR] || '') == y && ((i[COL_YM] || '').split('-')[1] === mKey) && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); return items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); }); const costPts = fiscalMonthKeys.map(mKey => { let items = data.filter(i => (i[COL_YEAR] || '') == y && ((i[COL_YM] || '').split('-')[1] === mKey) && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); return items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0); }); if(dataPts.some(v => v > 0)) { stackGroupDatasets.push({ label: `${cat} (ปี ${y})`, stack: `Year${y}`, backgroundColor: catColors[cat], data: dataPts, costs: costPts }); } }); });
-            fiscalMonthKeys.forEach((mKey, mIdx) => { allYears.forEach(y => { allCategories.forEach(cat => { let items = data.filter(i => (i[COL_YEAR] || '') == y && ((i[COL_YM] || '').split('-')[1] === mKey) && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); let lSum = items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); let cSum = items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0); if(lSum > 0) tbMonthlyCompareHTML += `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${fiscalMonthNames[mIdx]}</td><td class="px-4 py-2">${y}</td><td class="px-4 py-2">${cat}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${lSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${cSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`; }); }); });
+            fiscalMonthKeys.forEach((mKey, mIdx) => { allYears.forEach(y => { allCategories.forEach(cat => { let items = data.filter(i => (i[COL_YEAR] || '') == y && ((i[COL_YM] || '').split('-')[1] === mKey) && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); let lSum = items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); let cSum = items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0); if(lSum > 0) tbMonthlyCompareHTML += `<tr class="border-b hover:bg-gray-50"><td class="px-3 py-2">${fiscalMonthNames[mIdx]}</td><td class="px-3 py-2">${y}</td><td class="px-3 py-2">${cat}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${lSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${cSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`; }); }); });
             if(charts.monthlyCompare) charts.monthlyCompare.destroy(); let mcOptions = getTooltipOptions(); mcOptions.scales = { x: { stacked: true }, y: { stacked: true } }; charts.monthlyCompare = new Chart(document.getElementById('monthlyCompareChart'), { type: 'bar', data: { labels: fiscalMonthNames, datasets: stackGroupDatasets }, options: mcOptions }); document.getElementById('tb-monthlyCompare').innerHTML = tbMonthlyCompareHTML;
 
             const sortedVehs = Object.keys(vehSummary).sort((a,b) => vehSummary[b].liter - vehSummary[a].liter);
             if(charts.allVehiclesYear) charts.allVehiclesYear.destroy(); let opt4 = getTooltipOptions(); opt4.indexAxis = 'y'; charts.allVehiclesYear = new Chart(document.getElementById('allVehiclesYearChart'), { type: 'bar', data: { labels: sortedVehs, datasets: [{ label: 'ปริมาณรวม (ลิตร)', data: sortedVehs.map(v => vehSummary[v].liter), costs: sortedVehs.map(v => vehSummary[v].cost), backgroundColor: colorPalette[0], borderRadius: 2 }] }, options: opt4 });
-            document.getElementById('tb-allVehiclesYear').innerHTML = sortedVehs.map(v => `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${v}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${vehSummary[v].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${vehSummary[v].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
+            document.getElementById('tb-allVehiclesYear').innerHTML = sortedVehs.map(v => `<tr class="border-b hover:bg-gray-50"><td class="px-3 py-2">${v}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${vehSummary[v].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${vehSummary[v].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
         }
 
-        // ================= เรนเดอร์หน้า: ช่วงเดือน =================
         function renderDashMonth() {
             let data = filteredDataMonth; generateKPICards('kpi-month', data);
             const allCategories = [...new Set(data.map(i => i[COL_CATEGORY] || 'ไม่ระบุ'))]; const catColors = {}; allCategories.forEach((cat, idx) => { catColors[cat] = colorPalette[idx % colorPalette.length]; });
             const typeSummary = {}; const fuelSummary = {}; const vehSummary = {};
             data.forEach(item => { let cat = item[COL_CATEGORY] || 'ไม่ระบุ'; let fuel = item[COL_FUEL_TYPE] || 'ไม่ระบุ'; let v = item[COL_VEHICLE] || 'ไม่ระบุ'; if(!typeSummary[cat]) typeSummary[cat] = { liter: 0, cost: 0 }; typeSummary[cat].liter += (Number(item[COL_LITER]) || 0); typeSummary[cat].cost += (Number(item[COL_CUM_COST]) || 0); if(!fuelSummary[fuel]) fuelSummary[fuel] = { liter: 0, cost: 0 }; fuelSummary[fuel].liter += (Number(item[COL_LITER]) || 0); fuelSummary[fuel].cost += (Number(item[COL_CUM_COST]) || 0); if(!vehSummary[v]) vehSummary[v] = { liter: 0, cost: 0 }; vehSummary[v].liter += (Number(item[COL_LITER]) || 0); vehSummary[v].cost += (Number(item[COL_CUM_COST]) || 0); });
 
-            const typeLabels = Object.keys(typeSummary); if(charts.typeMonthBar) charts.typeMonthBar.destroy(); let optM1 = getTooltipOptions(); charts.typeMonthBar = new Chart(document.getElementById('typeMonthBarChart'), { type: 'bar', data: { labels: typeLabels, datasets: [{ label: 'ปริมาณน้ำมัน', data: typeLabels.map(k => typeSummary[k].liter), costs: typeLabels.map(k => typeSummary[k].cost), backgroundColor: typeLabels.map(k => catColors[k] || colorPalette[0]), borderRadius: 4 }] }, options: optM1 }); document.getElementById('tb-typeMonthBar').innerHTML = typeLabels.map(k => `<tr class="border-b"><td class="px-4 py-2">${k}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${typeSummary[k].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${typeSummary[k].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
-            const fuelLabels = Object.keys(fuelSummary); if(charts.fuelMonthDoughnut) charts.fuelMonthDoughnut.destroy(); let optM2 = getTooltipOptions(); charts.fuelMonthDoughnut = new Chart(document.getElementById('fuelMonthDoughnutChart'), { type: 'doughnut', data: { labels: fuelLabels, datasets: [{ data: fuelLabels.map(k => fuelSummary[k].liter), costs: fuelLabels.map(k => fuelSummary[k].cost), backgroundColor: [colorPalette[1], colorPalette[2], colorPalette[3]] }] }, options: optM2 }); document.getElementById('tb-fuelMonthDoughnut').innerHTML = fuelLabels.map(k => `<tr class="border-b"><td class="px-4 py-2">${k}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${fuelSummary[k].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${fuelSummary[k].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
+            const typeLabels = Object.keys(typeSummary); if(charts.typeMonthBar) charts.typeMonthBar.destroy(); let optM1 = getTooltipOptions(); charts.typeMonthBar = new Chart(document.getElementById('typeMonthBarChart'), { type: 'bar', data: { labels: typeLabels, datasets: [{ label: 'ปริมาณน้ำมัน', data: typeLabels.map(k => typeSummary[k].liter), costs: typeLabels.map(k => typeSummary[k].cost), backgroundColor: typeLabels.map(k => catColors[k] || colorPalette[0]), borderRadius: 4 }] }, options: optM1 }); document.getElementById('tb-typeMonthBar').innerHTML = typeLabels.map(k => `<tr class="border-b"><td class="px-3 py-2">${k}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${typeSummary[k].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${typeSummary[k].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
+            const fuelLabels = Object.keys(fuelSummary); if(charts.fuelMonthDoughnut) charts.fuelMonthDoughnut.destroy(); let optM2 = getTooltipOptions(); charts.fuelMonthDoughnut = new Chart(document.getElementById('fuelMonthDoughnutChart'), { type: 'doughnut', data: { labels: fuelLabels, datasets: [{ data: fuelLabels.map(k => fuelSummary[k].liter), costs: fuelLabels.map(k => fuelSummary[k].cost), backgroundColor: [colorPalette[1], colorPalette[2], colorPalette[3]] }] }, options: optM2 }); document.getElementById('tb-fuelMonthDoughnut').innerHTML = fuelLabels.map(k => `<tr class="border-b"><td class="px-3 py-2">${k}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${fuelSummary[k].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${fuelSummary[k].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
             
             const allYM = [...new Set(data.map(i => i[COL_YM]).filter(Boolean))].sort(); const monthlyTrendDatasets = allCategories.map(cat => { const dataPts = allYM.map(ym => { let items = data.filter(i => (i[COL_YM] || '') === ym && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); return items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); }); const costPts = allYM.map(ym => { let items = data.filter(i => (i[COL_YM] || '') === ym && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); return items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0); }); return { label: cat, backgroundColor: catColors[cat], data: dataPts, costs: costPts }; });
-            if(charts.monthlyTypeTrend) charts.monthlyTypeTrend.destroy(); let mtOptions = getTooltipOptions(); mtOptions.scales = { x: { stacked: true }, y: { stacked: true } }; charts.monthlyTypeTrend = new Chart(document.getElementById('monthlyTypeTrendChart'), { type: 'bar', data: { labels: allYM, datasets: monthlyTrendDatasets }, options: mtOptions }); let tbMonthlyTypeTrendHTML = ''; allYM.forEach(ym => { allCategories.forEach(cat => { let items = data.filter(i => (i[COL_YM] || '') === ym && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); let lSum = items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); let cSum = items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0); if(lSum > 0) tbMonthlyTypeTrendHTML += `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${ym}</td><td class="px-4 py-2">${cat}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${lSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${cSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`; });}); document.getElementById('tb-monthlyTypeTrend').innerHTML = tbMonthlyTypeTrendHTML;
+            if(charts.monthlyTypeTrend) charts.monthlyTypeTrend.destroy(); let mtOptions = getTooltipOptions(); mtOptions.scales = { x: { stacked: true }, y: { stacked: true } }; charts.monthlyTypeTrend = new Chart(document.getElementById('monthlyTypeTrendChart'), { type: 'bar', data: { labels: allYM, datasets: monthlyTrendDatasets }, options: mtOptions }); let tbMonthlyTypeTrendHTML = ''; allYM.forEach(ym => { allCategories.forEach(cat => { let items = data.filter(i => (i[COL_YM] || '') === ym && (i[COL_CATEGORY] || 'ไม่ระบุ') === cat); let lSum = items.reduce((sum, i) => sum + (Number(i[COL_LITER]) || 0), 0); let cSum = items.reduce((sum, i) => sum + (Number(i[COL_CUM_COST]) || 0), 0); if(lSum > 0) tbMonthlyTypeTrendHTML += `<tr class="border-b hover:bg-gray-50"><td class="px-3 py-2">${ym}</td><td class="px-3 py-2">${cat}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${lSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${cSum.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`; });}); document.getElementById('tb-monthlyTypeTrend').innerHTML = tbMonthlyTypeTrendHTML;
 
-            const sortedVehs = Object.keys(vehSummary).sort((a,b) => vehSummary[b].liter - vehSummary[a].liter); if(charts.allVehiclesMonth) charts.allVehiclesMonth.destroy(); let optM4 = getTooltipOptions(); optM4.indexAxis = 'y'; charts.allVehiclesMonth = new Chart(document.getElementById('allVehiclesMonthChart'), { type: 'bar', data: { labels: sortedVehs, datasets: [{ label: 'ปริมาณรวม (ลิตร)', data: sortedVehs.map(v => vehSummary[v].liter), costs: sortedVehs.map(v => vehSummary[v].cost), backgroundColor: colorPalette[0], borderRadius: 2 }] }, options: optM4 }); document.getElementById('tb-allVehiclesMonth').innerHTML = sortedVehs.map(v => `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${v}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${vehSummary[v].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${vehSummary[v].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
+            const sortedVehs = Object.keys(vehSummary).sort((a,b) => vehSummary[b].liter - vehSummary[a].liter); if(charts.allVehiclesMonth) charts.allVehiclesMonth.destroy(); let optM4 = getTooltipOptions(); optM4.indexAxis = 'y'; charts.allVehiclesMonth = new Chart(document.getElementById('allVehiclesMonthChart'), { type: 'bar', data: { labels: sortedVehs, datasets: [{ label: 'ปริมาณรวม (ลิตร)', data: sortedVehs.map(v => vehSummary[v].liter), costs: sortedVehs.map(v => vehSummary[v].cost), backgroundColor: colorPalette[0], borderRadius: 2 }] }, options: optM4 }); document.getElementById('tb-allVehiclesMonth').innerHTML = sortedVehs.map(v => `<tr class="border-b hover:bg-gray-50"><td class="px-3 py-2">${v}</td><td class="px-3 py-2 text-right font-medium text-blue-600">${vehSummary[v].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${vehSummary[v].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
         }
 
-        // ================= เรนเดอร์หน้า: รายคัน (พร้อมตารางเรียงวันที่) =================
         function renderVehicleView() {
-            const vVal = document.getElementById('vehicleSelect').value; 
-            const vData = filteredDataMonth.filter(item => item[COL_VEHICLE] === vVal);
-
+            const vVal = document.getElementById('vehicleSelect').value; const vData = filteredDataMonth.filter(item => item[COL_VEHICLE] === vVal);
             const vCost = vData.reduce((sum, item) => sum + (Number(item[COL_CUM_COST]) || 0), 0); const vLiters = vData.reduce((sum, item) => sum + (Number(item[COL_LITER]) || 0), 0);
             document.getElementById('vehTotalCost').innerText = vCost.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ฿';
             document.getElementById('vehTotalLiters').innerText = vLiters.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ลิตร';
@@ -391,53 +417,41 @@
             let optV = getTooltipOptions();
             charts.vehicleHistory = new Chart(document.getElementById('vehicleHistoryChart'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'ปริมาณที่เติม', data: labels.map(l => historyMap[l].liter), costs: labels.map(l => historyMap[l].cost), backgroundColor: colorPalette[4], borderRadius: 4 }] }, options: optV });
 
-            // เรนเดอร์ตารางรายละเอียด (เรียงจากวันที่ มาก->น้อย)
             let sortedVData = [...vData].sort((a, b) => {
-                let parseD = (str) => {
-                    if(!str) return 0;
-                    let p = str.split('/');
-                    if(p.length !== 3) return 0;
-                    return new Date(p[2], p[1]-1, p[0]).getTime();
-                };
+                let parseD = (str) => { if(!str) return 0; let p = str.split('/'); if(p.length !== 3) return 0; return new Date(p[2], p[1]-1, p[0]).getTime(); };
                 return parseD(b[COL_DATE]) - parseD(a[COL_DATE]);
             });
 
-            const tbody = document.getElementById('tb-vehicleDetailsBody');
-            tbody.innerHTML = '';
-            if(sortedVData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">ไม่มีข้อมูล</td></tr>`; return;
-            }
+            const tbody = document.getElementById('tb-vehicleDetailsBody'); tbody.innerHTML = '';
+            if(sortedVData.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">ไม่มีข้อมูล</td></tr>`; return; }
             sortedVData.forEach(item => {
                 let liter = Number(item[COL_LITER]) || 0; let pricePerLiter = Number(item[COL_COST]) || 0; let totalPrice = Number(item[COL_CUM_COST]) || 0;
                 let tr = document.createElement('tr'); tr.className = 'hover:bg-gray-50 border-b';
-                tr.innerHTML = `<td class="px-4 py-3">${item[COL_DATE] || '-'}</td><td class="px-4 py-3">${item[COL_RECEIPT] || '-'}</td><td class="px-4 py-3">${item[COL_BUYER] || '-'}</td><td class="px-4 py-3"><span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${item[COL_FUEL_TYPE] || '-'}</span></td><td class="px-4 py-3 text-right font-bold text-blue-600">${liter.toFixed(2)}</td><td class="px-4 py-3 text-right">${pricePerLiter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-3 text-right text-green-600">${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td><td class="px-4 py-3 text-gray-500">${item[COL_CATEGORY] || '-'}</td>`;
+                tr.innerHTML = `<td class="px-3 py-2">${item[COL_DATE] || '-'}</td><td class="px-3 py-2">${item[COL_RECEIPT] || '-'}</td><td class="px-3 py-2">${item[COL_BUYER] || '-'}</td><td class="px-3 py-2"><span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${item[COL_FUEL_TYPE] || '-'}</span></td><td class="px-3 py-2 text-right font-bold text-blue-600">${liter.toFixed(2)}</td><td class="px-3 py-2 text-right">${pricePerLiter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td><td class="px-3 py-2 text-gray-500">${item[COL_CATEGORY] || '-'}</td>`;
                 tbody.appendChild(tr);
             });
         }
 
-        // ================= เรนเดอร์หน้า: ฐานข้อมูล =================
         function renderDatabase() {
             const searchQuery = document.getElementById('searchInput').value.toLowerCase(); const tbody = document.getElementById('fullTableBody'); tbody.innerHTML = '';
             let dData = filteredDataMonth;
             if(searchQuery.trim() !== '') { dData = filteredDataMonth.filter(item => (item[COL_VEHICLE] || '').toLowerCase().includes(searchQuery) || (item[COL_BUYER] || '').toLowerCase().includes(searchQuery) || (item[COL_RECEIPT] || '').toLowerCase().includes(searchQuery)); }
             const pageSizeSelect = document.getElementById('pageSize').value; let displayData = dData; let totalPages = 1;
             if (pageSizeSelect !== 'all') { const limit = parseInt(pageSizeSelect); totalPages = Math.ceil(dData.length / limit) || 1; if (currentPage > totalPages) currentPage = totalPages; if (currentPage < 1) currentPage = 1; displayData = dData.slice((currentPage - 1) * limit, (currentPage - 1) * limit + limit); }
-            document.getElementById('pageInfoText').innerText = `แสดงรายการที่ ${displayData.length > 0 ? ((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + 1 : 0} ถึง ${((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + displayData.length} จากทั้งหมด ${dData.length} รายการ (หน้า ${currentPage} / ${totalPages})`;
+            document.getElementById('pageInfoText').innerText = `แสดง ${displayData.length > 0 ? ((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + 1 : 0} ถึง ${((currentPage-1)*(pageSizeSelect==='all'?0:parseInt(pageSizeSelect))) + displayData.length} จาก ${dData.length} รายการ (หน้า ${currentPage} / ${totalPages})`;
             document.getElementById('btnPrev').disabled = currentPage === 1; document.getElementById('btnNext').disabled = currentPage === totalPages || pageSizeSelect === 'all';
             if(displayData.length === 0) { tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลที่ค้นหา</td></tr>`; return; }
             displayData.forEach(item => {
                 let costI = Number(item[COL_CUM_COST]) || 0; let costH = Number(item[COL_COST]) || 0; let liter = Number(item[COL_LITER]) || 0;
                 let tr = document.createElement('tr'); tr.className = 'hover:bg-gray-50 border-b';
-                tr.innerHTML = `<td class="px-4 py-3">${item[COL_DATE] || '-'}</td><td class="px-4 py-3 text-gray-500">${item[COL_RECEIPT] || '-'}</td><td class="px-4 py-3 font-medium text-gray-900">${item[COL_VEHICLE] || '-'}</td><td class="px-4 py-3">${item[COL_BUYER] || '-'}</td><td class="px-4 py-3"><span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${item[COL_FUEL_TYPE] || '-'}</span></td><td class="px-4 py-3 text-right font-bold text-blue-600">${liter.toFixed(2)}</td><td class="px-4 py-3 text-right">${costH.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-3 text-right text-green-600">${costI.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td><td class="px-4 py-3 text-gray-500">${item[COL_CATEGORY] || '-'}</td>`;
+                tr.innerHTML = `<td class="px-3 py-2">${item[COL_DATE] || '-'}</td><td class="px-3 py-2 text-gray-500">${item[COL_RECEIPT] || '-'}</td><td class="px-3 py-2 font-medium text-gray-900">${item[COL_VEHICLE] || '-'}</td><td class="px-3 py-2">${item[COL_BUYER] || '-'}</td><td class="px-3 py-2"><span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${item[COL_FUEL_TYPE] || '-'}</span></td><td class="px-3 py-2 text-right font-bold text-blue-600">${liter.toFixed(2)}</td><td class="px-3 py-2 text-right">${costH.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-3 py-2 text-right text-green-600">${costI.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td><td class="px-3 py-2 text-gray-500">${item[COL_CATEGORY] || '-'}</td>`;
                 tbody.appendChild(tr);
             });
         }
         function changePage(delta) { currentPage += delta; renderDatabase(); }
 
-        // ================= เรนเดอร์หน้า: PIVOT TABLE =================
         function renderPivot() {
             if (window.jQuery && window.jQuery.fn.pivotUI) {
-                // เตรียมข้อมูลสำหรับ Pivot
                 const pivotData = filteredDataMonth.map(item => ({
                     "ปีงบประมาณ": item[COL_YEAR] || 'ไม่ระบุ',
                     "ปี-เดือน": item[COL_YM] || 'ไม่ระบุ',
@@ -451,21 +465,9 @@
                     "ราคาต่อลิตร": Number(item[COL_COST]) || 0
                 }));
 
-                // สร้าง Pivot UI
                 $("#pivotContainer").pivotUI(pivotData, {
-                    vals: ["ปริมาณ(ลิตร)"],
-                    aggregatorName: "Sum", // ตั้งค่าเริ่มต้นให้หาผลรวม
-                    rendererName: "Table",
-                    rows: ["ปี-เดือน"], // ค่าเริ่มต้น แกน Y
-                    cols: ["หมวดหมู่"], // ค่าเริ่มต้น แกน X
-                    // แปลงภาษาของเมนู Pivot (ส่วนตัวเลือกผลรวม) เป็นภาษาไทยแบบย่อ
-                    aggregators: {
-                        "ผลรวม (Sum)": function() { return $.pivotUtilities.aggregators["Sum"]() },
-                        "จำนวนครั้ง (Count)": function() { return $.pivotUtilities.aggregators["Count"]() },
-                        "ค่าเฉลี่ย (Average)": function() { return $.pivotUtilities.aggregators["Average"]() },
-                        "สูงสุด (Max)": function() { return $.pivotUtilities.aggregators["Maximum"]() },
-                        "ต่ำสุด (Min)": function() { return $.pivotUtilities.aggregators["Minimum"]() }
-                    }
+                    vals: ["ปริมาณ(ลิตร)"], aggregatorName: "Sum", rendererName: "Table", rows: ["ปี-เดือน"], cols: ["หมวดหมู่"],
+                    aggregators: { "ผลรวม (Sum)": function() { return $.pivotUtilities.aggregators["Sum"]() }, "จำนวนครั้ง (Count)": function() { return $.pivotUtilities.aggregators["Count"]() }, "ค่าเฉลี่ย (Average)": function() { return $.pivotUtilities.aggregators["Average"]() }, "สูงสุด (Max)": function() { return $.pivotUtilities.aggregators["Maximum"]() }, "ต่ำสุด (Min)": function() { return $.pivotUtilities.aggregators["Minimum"]() } }
                 });
             } else {
                 document.getElementById('pivotContainer').innerHTML = "<p class='text-red-500'>กำลังโหลดไลบรารี Pivot หรือเกิดข้อผิดพลาดในการโหลด...</p>";
