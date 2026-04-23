@@ -299,6 +299,7 @@
             else if(currentTab === 'vehicle') renderVehicleView(); else if(currentTab === 'database') renderDatabase();
         }
 
+        // ฟังก์ชันสร้าง Options พื้นฐาน
         function getTooltipOptions() {
             return {
                 plugins: {
@@ -334,7 +335,6 @@
             const allCategories = [...new Set(data.map(i => i[COL_CATEGORY] || 'ไม่ระบุ'))];
             const allYears = [...new Set(data.map(i => i[COL_YEAR] || 'ไม่ระบุ'))].sort();
             
-            // Map Colors for categories so they are consistent
             const catColors = {}; allCategories.forEach((cat, idx) => { catColors[cat] = colorPalette[idx % colorPalette.length]; });
 
             const yearSummary = {}; const vehSummary = {};
@@ -349,7 +349,8 @@
             // 1. Bar Chart (Yearly)
             const yearLabels = Object.keys(yearSummary).sort();
             if(charts.yearBar) charts.yearBar.destroy();
-            charts.yearBar = new Chart(document.getElementById('yearBarChart'), { type: 'bar', data: { labels: yearLabels, datasets: [{ label: 'ปริมาณรวมต่อปี', data: yearLabels.map(y => yearSummary[y].liter), costs: yearLabels.map(y => yearSummary[y].cost), backgroundColor: colorPalette[5], borderRadius: 4 }] }, options: getTooltipOptions() });
+            let opt1 = getTooltipOptions();
+            charts.yearBar = new Chart(document.getElementById('yearBarChart'), { type: 'bar', data: { labels: yearLabels, datasets: [{ label: 'ปริมาณรวมต่อปี', data: yearLabels.map(y => yearSummary[y].liter), costs: yearLabels.map(y => yearSummary[y].cost), backgroundColor: colorPalette[5], borderRadius: 4 }] }, options: opt1 });
             document.getElementById('tb-yearBar').innerHTML = yearLabels.map(y => `<tr class="border-b"><td class="px-4 py-2">${y}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${yearSummary[y].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${yearSummary[y].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
 
             // 2. Grouped Chart (Type vs Year)
@@ -361,7 +362,8 @@
                 return { label: cat, backgroundColor: catColors[cat], data: catData.map(d => d.liter), costs: catData.map(d => d.cost) };
             });
             if(charts.typeYearGroup) charts.typeYearGroup.destroy();
-            charts.typeYearGroup = new Chart(document.getElementById('typeYearGroupChart'), { type: 'bar', data: { labels: yearLabels, datasets: groupDatasets }, options: getTooltipOptions() });
+            let opt2 = getTooltipOptions();
+            charts.typeYearGroup = new Chart(document.getElementById('typeYearGroupChart'), { type: 'bar', data: { labels: yearLabels, datasets: groupDatasets }, options: opt2 });
             let tbTypeYearHTML = '';
             yearLabels.forEach(y => { allCategories.forEach(cat => {
                 let items = data.filter(i => (i[COL_YEAR] || 'ไม่ระบุ') == y && (i[COL_CATEGORY] || 'ไม่ระบุ') == cat);
@@ -370,7 +372,7 @@
             });});
             document.getElementById('tb-typeYearGroup').innerHTML = tbTypeYearHTML;
 
-            // 3. NEW: Monthly Compare (Grouped by Year, Stacked by Type)
+            // 3. Monthly Compare (Grouped by Year, Stacked by Type)
             const stackGroupDatasets = [];
             let tbMonthlyCompareHTML = '';
             
@@ -403,14 +405,17 @@
 
             if(charts.monthlyCompare) charts.monthlyCompare.destroy();
             let mcOptions = getTooltipOptions(); 
-            mcOptions.options.scales = { x: { stacked: true }, y: { stacked: true } }; // ทำให้กราฟซ้อนกัน
-            charts.monthlyCompare = new Chart(document.getElementById('monthlyCompareChart'), { type: 'bar', data: { labels: fiscalMonthNames, datasets: stackGroupDatasets }, options: mcOptions.options });
+            // แก้ไขจุดที่ทำให้เกิด Error ตรงนี้ครับ
+            mcOptions.scales = { x: { stacked: true }, y: { stacked: true } }; 
+            charts.monthlyCompare = new Chart(document.getElementById('monthlyCompareChart'), { type: 'bar', data: { labels: fiscalMonthNames, datasets: stackGroupDatasets }, options: mcOptions });
             document.getElementById('tb-monthlyCompare').innerHTML = tbMonthlyCompareHTML;
 
             // 4. Horizontal Bar
             const sortedVehs = Object.keys(vehSummary).sort((a,b) => vehSummary[b].liter - vehSummary[a].liter);
             if(charts.allVehiclesYear) charts.allVehiclesYear.destroy();
-            charts.allVehiclesYear = new Chart(document.getElementById('allVehiclesYearChart'), { type: 'bar', data: { labels: sortedVehs, datasets: [{ label: 'ปริมาณรวม (ลิตร)', data: sortedVehs.map(v => vehSummary[v].liter), costs: sortedVehs.map(v => vehSummary[v].cost), backgroundColor: colorPalette[0], borderRadius: 2 }] }, options: { ...getTooltipOptions().options, indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
+            let opt4 = getTooltipOptions();
+            opt4.indexAxis = 'y'; // แก้ไขตรงนี้ด้วยเช่นกัน
+            charts.allVehiclesYear = new Chart(document.getElementById('allVehiclesYearChart'), { type: 'bar', data: { labels: sortedVehs, datasets: [{ label: 'ปริมาณรวม (ลิตร)', data: sortedVehs.map(v => vehSummary[v].liter), costs: sortedVehs.map(v => vehSummary[v].cost), backgroundColor: colorPalette[0], borderRadius: 2 }] }, options: opt4 });
             document.getElementById('tb-allVehiclesYear').innerHTML = sortedVehs.map(v => `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${v}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${vehSummary[v].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${vehSummary[v].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
         }
 
@@ -432,16 +437,18 @@
             // 1. Type Bar
             const typeLabels = Object.keys(typeSummary);
             if(charts.typeMonthBar) charts.typeMonthBar.destroy();
-            charts.typeMonthBar = new Chart(document.getElementById('typeMonthBarChart'), { type: 'bar', data: { labels: typeLabels, datasets: [{ label: 'ปริมาณน้ำมัน', data: typeLabels.map(k => typeSummary[k].liter), costs: typeLabels.map(k => typeSummary[k].cost), backgroundColor: typeLabels.map(k => catColors[k] || colorPalette[0]), borderRadius: 4 }] }, options: getTooltipOptions() });
+            let optM1 = getTooltipOptions();
+            charts.typeMonthBar = new Chart(document.getElementById('typeMonthBarChart'), { type: 'bar', data: { labels: typeLabels, datasets: [{ label: 'ปริมาณน้ำมัน', data: typeLabels.map(k => typeSummary[k].liter), costs: typeLabels.map(k => typeSummary[k].cost), backgroundColor: typeLabels.map(k => catColors[k] || colorPalette[0]), borderRadius: 4 }] }, options: optM1 });
             document.getElementById('tb-typeMonthBar').innerHTML = typeLabels.map(k => `<tr class="border-b"><td class="px-4 py-2">${k}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${typeSummary[k].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${typeSummary[k].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
 
             // 2. Fuel Doughnut
             const fuelLabels = Object.keys(fuelSummary);
             if(charts.fuelMonthDoughnut) charts.fuelMonthDoughnut.destroy();
-            charts.fuelMonthDoughnut = new Chart(document.getElementById('fuelMonthDoughnutChart'), { type: 'doughnut', data: { labels: fuelLabels, datasets: [{ data: fuelLabels.map(k => fuelSummary[k].liter), costs: fuelLabels.map(k => fuelSummary[k].cost), backgroundColor: [colorPalette[1], colorPalette[2], colorPalette[3]] }] }, options: getTooltipOptions() });
+            let optM2 = getTooltipOptions();
+            charts.fuelMonthDoughnut = new Chart(document.getElementById('fuelMonthDoughnutChart'), { type: 'doughnut', data: { labels: fuelLabels, datasets: [{ data: fuelLabels.map(k => fuelSummary[k].liter), costs: fuelLabels.map(k => fuelSummary[k].cost), backgroundColor: [colorPalette[1], colorPalette[2], colorPalette[3]] }] }, options: optM2 });
             document.getElementById('tb-fuelMonthDoughnut').innerHTML = fuelLabels.map(k => `<tr class="border-b"><td class="px-4 py-2">${k}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${fuelSummary[k].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${fuelSummary[k].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
 
-            // 3. NEW: Monthly Trend by Type (Stacked)
+            // 3. Monthly Trend by Type (Stacked)
             const allYM = [...new Set(data.map(i => i[COL_YM]).filter(Boolean))].sort();
             const monthlyTrendDatasets = allCategories.map(cat => {
                 const dataPts = allYM.map(ym => {
@@ -456,8 +463,10 @@
             });
 
             if(charts.monthlyTypeTrend) charts.monthlyTypeTrend.destroy();
-            let mtOptions = getTooltipOptions(); mtOptions.options.scales = { x: { stacked: true }, y: { stacked: true } };
-            charts.monthlyTypeTrend = new Chart(document.getElementById('monthlyTypeTrendChart'), { type: 'bar', data: { labels: allYM, datasets: monthlyTrendDatasets }, options: mtOptions.options });
+            let mtOptions = getTooltipOptions(); 
+            // แก้ไขจุดที่ทำให้เกิด Error ตรงนี้เช่นกันครับ
+            mtOptions.scales = { x: { stacked: true }, y: { stacked: true } };
+            charts.monthlyTypeTrend = new Chart(document.getElementById('monthlyTypeTrendChart'), { type: 'bar', data: { labels: allYM, datasets: monthlyTrendDatasets }, options: mtOptions });
             
             let tbMonthlyTypeTrendHTML = '';
             allYM.forEach(ym => { allCategories.forEach(cat => {
@@ -470,7 +479,9 @@
             // 4. Horizontal Bar
             const sortedVehs = Object.keys(vehSummary).sort((a,b) => vehSummary[b].liter - vehSummary[a].liter);
             if(charts.allVehiclesMonth) charts.allVehiclesMonth.destroy();
-            charts.allVehiclesMonth = new Chart(document.getElementById('allVehiclesMonthChart'), { type: 'bar', data: { labels: sortedVehs, datasets: [{ label: 'ปริมาณรวม (ลิตร)', data: sortedVehs.map(v => vehSummary[v].liter), costs: sortedVehs.map(v => vehSummary[v].cost), backgroundColor: colorPalette[0], borderRadius: 2 }] }, options: { ...getTooltipOptions().options, indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
+            let optM4 = getTooltipOptions();
+            optM4.indexAxis = 'y'; // แก้ไขตรงนี้
+            charts.allVehiclesMonth = new Chart(document.getElementById('allVehiclesMonthChart'), { type: 'bar', data: { labels: sortedVehs, datasets: [{ label: 'ปริมาณรวม (ลิตร)', data: sortedVehs.map(v => vehSummary[v].liter), costs: sortedVehs.map(v => vehSummary[v].cost), backgroundColor: colorPalette[0], borderRadius: 2 }] }, options: optM4 });
             document.getElementById('tb-allVehiclesMonth').innerHTML = sortedVehs.map(v => `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${v}</td><td class="px-4 py-2 text-right font-medium text-blue-600">${vehSummary[v].liter.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td><td class="px-4 py-2 text-right text-green-600">${vehSummary[v].cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td></tr>`).join('');
         }
 
@@ -484,7 +495,8 @@
             vData.forEach(item => { let m = item[COL_YM] || 'Unknown'; if(!historyMap[m]) historyMap[m] = { liter: 0, cost: 0 }; historyMap[m].liter += (Number(item[COL_LITER]) || 0); historyMap[m].cost += (Number(item[COL_CUM_COST]) || 0); });
             const labels = Object.keys(historyMap).sort();
             if(charts.vehicleHistory) charts.vehicleHistory.destroy();
-            charts.vehicleHistory = new Chart(document.getElementById('vehicleHistoryChart'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'ปริมาณที่เติม', data: labels.map(l => historyMap[l].liter), costs: labels.map(l => historyMap[l].cost), backgroundColor: colorPalette[4], borderRadius: 4 }] }, options: getTooltipOptions() });
+            let optV = getTooltipOptions();
+            charts.vehicleHistory = new Chart(document.getElementById('vehicleHistoryChart'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'ปริมาณที่เติม', data: labels.map(l => historyMap[l].liter), costs: labels.map(l => historyMap[l].cost), backgroundColor: colorPalette[4], borderRadius: 4 }] }, options: optV });
         }
 
         function renderDatabase() {
