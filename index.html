@@ -450,7 +450,7 @@
         }
         function changePage(delta) { currentPage += delta; renderDatabase(); }
 
-        function renderPivot() {
+function renderPivot() {
             if (window.jQuery && window.jQuery.fn.pivotUI) {
                 const pivotData = filteredDataMonth.map(item => ({
                     "ปีงบประมาณ": item[COL_YEAR] || 'ไม่ระบุ',
@@ -465,9 +465,23 @@
                     "ราคาต่อลิตร": Number(item[COL_COST]) || 0
                 }));
 
+                // ดึงตัวช่วยคำนวณของ Pivot มาเก็บไว้
+                const utils = $.pivotUtilities;
+
                 $("#pivotContainer").pivotUI(pivotData, {
-                    vals: ["ปริมาณ(ลิตร)"], aggregatorName: "Sum", rendererName: "Table", rows: ["ปี-เดือน"], cols: ["หมวดหมู่"],
-                    aggregators: { "ผลรวม (Sum)": function() { return $.pivotUtilities.aggregators["Sum"]() }, "จำนวนครั้ง (Count)": function() { return $.pivotUtilities.aggregators["Count"]() }, "ค่าเฉลี่ย (Average)": function() { return $.pivotUtilities.aggregators["Average"]() }, "สูงสุด (Max)": function() { return $.pivotUtilities.aggregators["Maximum"]() }, "ต่ำสุด (Min)": function() { return $.pivotUtilities.aggregators["Minimum"]() } }
+                    vals: ["ปริมาณ(ลิตร)"], 
+                    aggregatorName: "ผลรวม (Sum)", // ตั้งค่าเริ่มต้นเป็นผลรวม
+                    rendererName: "Table", 
+                    rows: ["ปี-เดือน"], 
+                    cols: ["หมวดหมู่"],
+                    // แก้ไขบั๊กตรงนี้: ส่งตัวคำนวณไปตรงๆ เพื่อให้มันรับค่าคอลัมน์ได้
+                    aggregators: { 
+                        "ผลรวม (Sum)": utils.aggregators["Sum"], 
+                        "จำนวนครั้ง (Count)": utils.aggregators["Count"], 
+                        "ค่าเฉลี่ย (Average)": utils.aggregators["Average"], 
+                        "สูงสุด (Max)": utils.aggregators["Maximum"], 
+                        "ต่ำสุด (Min)": utils.aggregators["Minimum"] 
+                    }
                 });
             } else {
                 document.getElementById('pivotContainer').innerHTML = "<p class='text-red-500'>กำลังโหลดไลบรารี Pivot หรือเกิดข้อผิดพลาดในการโหลด...</p>";
